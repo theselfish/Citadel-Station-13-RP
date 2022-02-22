@@ -2235,6 +2235,8 @@
 #include "code\modules\lore\entries\planets\planets.dm"
 #include "code\modules\lore\entries\religion\_religion.dm"
 #include "code\modules\lore\entries\religion\religions.dm"
+#include "code\modules\lore\entries\species\_species.dm"
+#include "code\modules\lore\entries\species\species.dm"
 #include "code\modules\lore\entries\systems\_system.dm"
 #include "code\modules\lore\entries\systems\systems.dm"
 #include "code\modules\lore_codex\codex.dm"
