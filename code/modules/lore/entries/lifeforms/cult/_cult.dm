@@ -1,0 +1,1 @@
+/datum/lore/lifeform/cult
