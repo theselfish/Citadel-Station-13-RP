@@ -30,3 +30,15 @@
  */
 /datum/lore/proc/Description()
 	return description
+
+/**
+ * Get short name
+ */
+/datum/lore/proc/Name()
+	return name
+
+/**
+ * Get full name
+ */
+/datum/lore/proc/FullName()
+	return name
