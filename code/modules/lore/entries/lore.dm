@@ -12,10 +12,18 @@
 	var/abstract_type = /datum/lore
 	/// Default contents
 	var/description = "An unknown lore entry."
+	/// wiki page name, if any
+	var/wiki_page
+	/// lore codex category
+	var/codex_category = LORE_CATEGORY_MISC
+	/// lore codex entry type
+	var/codex_style = LORE_STYLE_NORMAL
 
-/datum/lore/New()
-	if(isnull(id))
-		id = "[type]"
+/datum/lore/New(id)
+	if(id)
+		src.id = id
+	if(isnull(src.id))
+		src.id = "[type]"
 	if(isnull(name))
 		name = "Lore Entry #[++entry_no]"
 	Generate()
@@ -42,3 +50,21 @@
  */
 /datum/lore/proc/FullName()
 	return name
+
+/**
+ * Get wiki path
+ */
+/datum/lore/proc/GetWikiLink()
+	return HasWikiLink() && (CONFIG_GET(url/wiki_page_root) + wiki_page)
+
+/**
+ * Has wiki link?
+ */
+/datum/lore/proc/HasWikiLink()
+	return !!wiki_page
+
+/**
+ * Return tgui datastructure
+ */
+/datum/lore/proc/DataList()
+	#warn impl
