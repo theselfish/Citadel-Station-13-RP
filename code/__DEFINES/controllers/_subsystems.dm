@@ -96,6 +96,7 @@ var/global/list/runlevel_flags = list(RUNLEVEL_LOBBY, RUNLEVEL_SETUP, RUNLEVEL_G
 
 #define INIT_ORDER_FAIL2TOPIC		101
 #define INIT_ORDER_INPUT			100
+#define INIT_ORDER_LOREMASTER		99
 #define INIT_ORDER_SOUNDS			95
 #define INIT_ORDER_JOBS				85
 #define INIT_ORDER_VIS				80
