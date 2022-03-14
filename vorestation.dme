@@ -2253,6 +2253,7 @@
 #include "code\modules\lore\entries\location\ship.dm"
 #include "code\modules\lore\entries\location\star.dm"
 #include "code\modules\lore\entries\location\system.dm"
+#include "code\modules\lore\entries\products\_product.dm"
 #include "code\modules\lore\entries\technology\_technology.dm"
 #include "code\modules\lore\entries\technology\prosthetics\_robolimbs.dm"
 #include "code\modules\lore\entries\technology\space_travel\_space_travel.dm"
