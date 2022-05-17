@@ -26,7 +26,8 @@
 
 //Camera networks
 #define NETWORK_TETHER "Tether"
-#define NETWORK_TCOMMS "Telecommunications" //Using different from Polaris one for better name
+///Using different from Polaris one for better name
+#define NETWORK_TCOMMS "Telecommunications"
 #define NETWORK_OUTSIDE "Outside"
 #define NETWORK_EXPLORATION "Exploration"
 #define NETWORK_XENOBIO "Xenobiology"
@@ -62,7 +63,7 @@
 
 	lobby_icon = 'icons/misc/title_vr.dmi'
 	lobby_screens = list("tether2_night")
-	id_hud_icons = 'icons/mob/hud_jobs_vr.dmi'
+	id_hud_icons = 'icons/mob/hud_jobs_cit.dmi'
 
 	holomap_smoosh = list(list(
 		Z_LEVEL_SURFACE_LOW,
@@ -118,14 +119,12 @@
 							NETWORK_ALARM_ATMOS,
 							NETWORK_ALARM_POWER,
 							NETWORK_ALARM_FIRE,
-							NETWORK_TALON_HELMETS,
-							NETWORK_TALON_SHIP,
 							NETWORK_TRADE_STATION
 							)
 
 	bot_patrolling = FALSE
 
-	allowed_spawns = list("Tram Station","Gateway","Cryogenic Storage","Cyborg Storage","ITV Talon Cryo","Beruang Trading Corp Cryo")
+	allowed_spawns = list("Tram Station","Gateway","Cryogenic Storage","Cyborg Storage","Beruang Trading Corp Cryo")
 	spawnpoint_died = /datum/spawnpoint/tram
 	spawnpoint_left = /datum/spawnpoint/tram
 	spawnpoint_stayed = /datum/spawnpoint/cryo
@@ -159,7 +158,6 @@
 
 	lateload_z_levels = list(
 		list("Tether - Misc","Tether - Underdark","Tether - Plains"), //Stock Tether lateload maps
-		list("Offmap Ship - Talon Z1","Offmap Ship - Talon Z2"),
 		list("Asteroid Belt 1","Asteroid Belt 2"),
 		list("Desert Planet - Z1 Beach","Desert Planet - Z2 Cave","Desert Planet - Z3 Desert"),
 		list("Remmi Aerostat - Z1 Aerostat","Remmi Aerostat - Z2 Surface"),
@@ -342,7 +340,7 @@ Allignment: Neutral to NanoTrasen. No Discount for services expected."}
 	known = FALSE
 	color = "#33BB33"
 
-/obj/effect/overmap/visitable/sector/frozen_planet
+/obj/effect/overmap/visitable/sector/class_p
 	name = "Frozen Planet"
 	desc = "A world shrouded in cold and snow that seems to never let up."
 	scanner_desc = @{"[i]Information[/i]: A planet with a very cold atmosphere. Possible life signs detected."}
@@ -399,12 +397,18 @@ Allignment: Neutral to NanoTrasen. No Discount for services expected."}
 		GLOB.lore_atc.msg(message)
 
 // For making the 6-in-1 holomap, we calculate some offsets
-#define TETHER_MAP_SIZE 140 // Width and height of compiled in tether z levels.
-#define TETHER_HOLOMAP_CENTER_GUTTER 40 // 40px central gutter between columns
-#define TETHER_HOLOMAP_MARGIN_X ((HOLOMAP_ICON_SIZE - (2*TETHER_MAP_SIZE) - TETHER_HOLOMAP_CENTER_GUTTER) / 2) // 80
-#define TETHER_HOLOMAP_MARGIN_Y ((HOLOMAP_ICON_SIZE - (3*TETHER_MAP_SIZE)) / 2) // 30
-
+/// Width and height of compiled in tether z levels.
+#define TETHER_MAP_SIZE 140
+/// 40px central gutter between columns
+#define TETHER_HOLOMAP_CENTER_GUTTER 40
+/// 80
+#define TETHER_HOLOMAP_MARGIN_X ((HOLOMAP_ICON_SIZE - (2*TETHER_MAP_SIZE) - TETHER_HOLOMAP_CENTER_GUTTER) / 2)
+/// 30
+#define TETHER_HOLOMAP_MARGIN_Y ((HOLOMAP_ICON_SIZE - (3*TETHER_MAP_SIZE)) / 2)
 // We have a bunch of stuff common to the station z levels
+/datum/map_z_level/tether
+	base_turf = /turf/simulated/floor/outdoors/rocks/virgo3b
+
 /datum/map_z_level/tether/station
 	flags = MAP_LEVEL_STATION|MAP_LEVEL_CONTACT|MAP_LEVEL_PLAYER|MAP_LEVEL_CONSOLES|MAP_LEVEL_XENOARCH_EXEMPT
 	holomap_legend_x = 220

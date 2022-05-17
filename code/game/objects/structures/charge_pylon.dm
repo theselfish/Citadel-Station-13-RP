@@ -25,7 +25,7 @@
 
 	playsound(loc, 'sound/effects/snap.ogg', 50, 1)
 
-	if(istype(H) && H.species.name == SPECIES_ADHERENT && H.nutrition < 450)
+	if(istype(H) && H.species.name == SPECIES_ADHERENT && H.nutrition < H.species.max_nutrition)
 		H.nutrition = 400
 		return
 	if(isrobot(user))
@@ -46,3 +46,17 @@
 	. =..()
 	if(ishuman(AM))
 		charge_user(AM)
+
+/decl/flooring/crystal
+	name = "crystal floor"
+	icon = 'icons/turf/flooring/crystal.dmi'
+	build_type = null
+	flags = TURF_ACID_IMMUNE | TURF_CAN_BREAK | TURF_REMOVE_CROWBAR
+	//color = "#00ffe1"
+
+/turf/simulated/floor/crystal
+	name = "crystal floor"
+	icon = 'icons/turf/flooring/crystal.dmi'
+	icon_state = ""
+	initial_flooring = /decl/flooring/crystal
+

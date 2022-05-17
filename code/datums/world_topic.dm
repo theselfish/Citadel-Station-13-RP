@@ -127,7 +127,7 @@
 	for(var/mob/dead/observer/O in GLOB.player_list)
 		if(O.key == expected_key)
 			if(O.client)
-				new /obj/screen/splash(O.client, TRUE)
+				new /atom/movable/screen/splash(O.client, TRUE)
 			break
 
 /datum/world_topic/adminmsg
@@ -208,7 +208,7 @@
 		var/name = R.fields["name"]
 		var/rank = R.fields["rank"]
 		var/real_rank = make_list_rank(R.fields["real_rank"])
-		if(SSjob.is_job_in_department(real_rank, DEPARTMENT_TALON))
+		if(SSjob.is_job_in_department(real_rank, DEPARTMENT_TALON)) // Not touching this for now as I dont know if it will break things -Bloop
 			talon[name] = rank
 			continue
 		if(SSjob.is_job_in_department(real_rank, DEPARTMENT_TRADE))
