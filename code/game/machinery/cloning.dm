@@ -54,7 +54,6 @@
 /obj/machinery/clonepod/Initialize(mapload, newdir)
 	. = ..()
 	default_apply_parts()
-	RefreshParts()
 	update_icon()
 
 /obj/machinery/clonepod/attack_ai(mob/user)
@@ -151,7 +150,7 @@
 
 	// Upgraded cloners can reduce the time of the modifier, up to 80%
 	var/clone_sickness_length = abs(((heal_level - 20) / 100 ) - 1)
-	clone_sickness_length = between(0.2, clone_sickness_length, 1.0) // Caps it off just incase.
+	clone_sickness_length = clamp( clone_sickness_length, 0.2,  1.0) // Caps it off just incase.
 	modifier_lower_bound = round(modifier_lower_bound * clone_sickness_length, 1)
 	modifier_upper_bound = round(modifier_upper_bound * clone_sickness_length, 1)
 
@@ -247,10 +246,10 @@
 		if(LAZYLEN(containers) >= container_limit)
 			to_chat(user, SPAN_WARNING("\The [src] has too many containers loaded!"))
 		else if(do_after(user, 1 SECOND))
+			if(!user.attempt_insert_item_for_installation(W, src))
+				return
 			user.visible_message("[user] has loaded \the [W] into \the [src].", "You load \the [W] into \the [src].")
 			containers += W
-			user.drop_item()
-			W.forceMove(src)
 		return
 	else if(W.is_wrench())
 		if(locked && (anchored || occupant))
@@ -262,7 +261,7 @@
 				connected = null
 			else
 				anchored = TRUE
-			playsound(src, W.usesound, 100, TRUE)
+			playsound(src, W.tool_sound, 100, TRUE)
 			if(anchored)
 				user.visible_message("[user] secures [src] to the floor.", "You secure [src] to the floor.")
 			else
@@ -497,30 +496,30 @@
 	name = "data disk - 'God Emperor of Mankind'"
 	read_only = 1
 
-	New()
-		initializeDisk()
-		buf.types=DNA2_BUF_UE|DNA2_BUF_UI
-		//data = "066000033000000000AF00330660FF4DB002690"
-		//data = "0C80C80C80C80C80C8000000000000161FBDDEF" - Farmer Jeff
-		buf.dna.real_name="God Emperor of Mankind"
-		buf.dna.unique_enzymes = md5(buf.dna.real_name)
-		buf.dna.UI=list(0x066,0x000,0x033,0x000,0x000,0x000,0xAF0,0x033,0x066,0x0FF,0x4DB,0x002,0x690)
-		//buf.dna.UI=list(0x0C8,0x0C8,0x0C8,0x0C8,0x0C8,0x0C8,0x000,0x000,0x000,0x000,0x161,0xFBD,0xDEF) // Farmer Jeff
-		buf.dna.UpdateUI()
+/obj/item/disk/data/demo/New()
+	initializeDisk()
+	buf.types=DNA2_BUF_UE|DNA2_BUF_UI
+	//data = "066000033000000000AF00330660FF4DB002690"
+	//data = "0C80C80C80C80C80C8000000000000161FBDDEF" - Farmer Jeff
+	buf.dna.real_name="God Emperor of Mankind"
+	buf.dna.unique_enzymes = md5(buf.dna.real_name)
+	buf.dna.UI=list(0x066,0x000,0x033,0x000,0x000,0x000,0xAF0,0x033,0x066,0x0FF,0x4DB,0x002,0x690)
+	//buf.dna.UI=list(0x0C8,0x0C8,0x0C8,0x0C8,0x0C8,0x0C8,0x000,0x000,0x000,0x000,0x161,0xFBD,0xDEF) // Farmer Jeff
+	buf.dna.UpdateUI()
 
 /obj/item/disk/data/monkey
 	name = "data disk - 'Mr. Muggles'"
 	read_only = 1
 
-	New()
-		..()
-		initializeDisk()
-		buf.types=DNA2_BUF_SE
-		var/list/new_SE=list(0x098,0x3E8,0x403,0x44C,0x39F,0x4B0,0x59D,0x514,0x5FC,0x578,0x5DC,0x640,0x6A4)
-		for(var/i=new_SE.len;i<=DNA_SE_LENGTH;i++)
-			new_SE += rand(1,1024)
-		buf.dna.SE=new_SE
-		buf.dna.SetSEValueRange(MONKEYBLOCK,0xDAC, 0xFFF)
+/obj/item/disk/data/monkey/New()
+	..()
+	initializeDisk()
+	buf.types=DNA2_BUF_SE
+	var/list/new_SE=list(0x098,0x3E8,0x403,0x44C,0x39F,0x4B0,0x59D,0x514,0x5FC,0x578,0x5DC,0x640,0x6A4)
+	for(var/i=new_SE.len;i<=DNA_SE_LENGTH;i++)
+		new_SE += rand(1,1024)
+	buf.dna.SE=new_SE
+	buf.dna.SetSEValueRange(DNABLOCK_MONKEY,0xDAC, 0xFFF)
 
 /obj/item/disk/data/Initialize(mapload)
 	. = ..()

@@ -185,8 +185,8 @@ two tiles on initialization, and which way a cliff is facing may change during m
 
 		// Do the actual hurting. Double cliffs do halved damage due to them most likely hitting twice.
 		var/harm = !is_double_cliff ? 1 : 0.5
-		if(istype(L.buckled, /obj/vehicle)) // People falling off in vehicles will take less damage, but will damage the vehicle severely.
-			var/obj/vehicle/vehicle = L.buckled
+		if(istype(L.buckled, /obj/vehicle_old)) // People falling off in vehicles will take less damage, but will damage the vehicle severely.
+			var/obj/vehicle_old/vehicle = L.buckled
 			vehicle.adjust_health(40 * harm)
 			to_chat(L, SPAN_WARNING( "\The [vehicle] absorbs some of the impact, damaging it."))
 			harm /= 2
@@ -205,7 +205,7 @@ two tiles on initialization, and which way a cliff is facing may change during m
 		// The bigger they are, the harder they fall.
 		// They will take at least 20 damage at the minimum, and tries to scale up to 40% of their max health.
 		// This scaling is capped at 100 total damage, which occurs if the thing that fell has more than 250 health.
-		var/damage = between(20, L.getMaxHealth() * 0.4, 100)
+		var/damage = clamp( L.getMaxHealth() * 0.4, 20,  100)
 		var/target_zone = ran_zone()
 		var/blocked = L.run_armor_check(target_zone, "melee") * harm
 		var/soaked = L.get_armor_soak(target_zone, "melee") * harm
@@ -226,7 +226,7 @@ two tiles on initialization, and which way a cliff is facing may change during m
 		var/obj/item/clothing/shoes/shoes = H.shoes
 		if(shoes && shoes.rock_climbing)
 			return ..() // Do the other checks too.
-		var/obj/item/held = H.get_active_hand()
+		var/obj/item/held = H.get_active_held_item()
 		if(held && istype(held, /obj/item/pickaxe/icepick))
 			return ..() //climb rock wall with ice pick. Makes sense.
 

@@ -28,7 +28,6 @@
 /obj/item/gun/energy/laser/mounted/augment
 	use_external_power = FALSE
 	use_organic_power = TRUE
-	canremove = FALSE
 
 /obj/item/gun/energy/laser/practice
 	name = "practice laser carbine"
@@ -169,7 +168,7 @@
 	ionized beams, this is a weapon to kill from a distance."
 	icon_state = "sniper"
 	item_state = "sniper"
-	item_state_slots = list(slot_r_hand_str = "z8carbine", slot_l_hand_str = "z8carbine") //placeholder
+	item_state_slots = list(SLOT_ID_RIGHT_HAND = "z8carbine", SLOT_ID_LEFT_HAND = "z8carbine") //placeholder
 	origin_tech = list(TECH_COMBAT = 6, TECH_MATERIAL = 5, TECH_POWER = 4)
 	projectile_type = /obj/item/projectile/beam/sniper
 	slot_flags = SLOT_BACK

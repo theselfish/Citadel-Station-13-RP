@@ -13,7 +13,9 @@
 
 	var/obj/item/reagent_containers/glass/rag/rag = null
 	var/rag_underlay = "rag"
-	on_reagent_change() return // To suppress price updating. Bottles have their own price tags.
+
+/obj/item/reagent_containers/food/drinks/bottle/on_reagent_change()
+	return // To suppress price updating. Bottles have their own price tags.
 
 /obj/item/reagent_containers/food/drinks/bottle/Initialize(mapload)
 	. = ..()
@@ -26,13 +28,13 @@
 	return ..()
 
 //when thrown on impact, bottles smash and spill their contents
-/obj/item/reagent_containers/food/drinks/bottle/throw_impact(atom/hit_atom, var/speed)
+/obj/item/reagent_containers/food/drinks/bottle/throw_impact(atom/hit_atom, datum/thrownthing/TT)
 	..()
 
-	var/mob/M = thrower
+	var/mob/M = TT.thrower
 	if(isGlass && istype(M) && M.a_intent == INTENT_HARM)
-		var/throw_dist = get_dist(throw_source, loc)
-		if(speed >= throw_speed && smash_check(throw_dist)) //not as reliable as smashing directly
+		var/throw_dist = get_dist(TT.initial_turf, loc)
+		if(TT.speed >= throw_speed && smash_check(throw_dist)) //not as reliable as smashing directly
 			if(reagents)
 				hit_atom.visible_message("<span class='notice'>The contents of \the [src] splash all over [hit_atom]!</span>")
 				reagents.splash(hit_atom, reagents.total_volume)
@@ -51,7 +53,7 @@
 /obj/item/reagent_containers/food/drinks/bottle/proc/smash(var/newloc, atom/against = null)
 	if(ismob(loc))
 		var/mob/M = loc
-		M.drop_from_inventory(src)
+		M.temporarily_remove_from_inventory(src, INV_OP_FORCE | INV_OP_SHOULD_NOT_INTERCEPT | INV_OP_SILENT)
 
 	//Creates a shattering noise and replaces the bottle with a broken_bottle
 	var/obj/item/broken_bottle/B = new /obj/item/broken_bottle(newloc)
@@ -111,17 +113,18 @@
 		..()
 
 /obj/item/reagent_containers/food/drinks/bottle/proc/insert_rag(obj/item/reagent_containers/glass/rag/R, mob/user)
-	if(!isGlass || rag) return
-	if(user.unEquip(R))
+	if(!isGlass || rag)
+		return
+	if(user.attempt_insert_item_for_installation(R, src))
 		to_chat(user, "<span class='notice'>You stuff [R] into [src].</span>")
 		rag = R
-		rag.forceMove(src)
 		flags &= ~OPENCONTAINER
 		update_icon()
 
 /obj/item/reagent_containers/food/drinks/bottle/proc/remove_rag(mob/user)
-	if(!rag) return
-	user.put_in_hands(rag)
+	if(!rag)
+		return
+	user.put_in_hands_or_drop(rag)
 	rag = null
 	flags |= (initial(flags) & OPENCONTAINER)
 	update_icon()
@@ -175,7 +178,7 @@
 	icon = 'icons/obj/drinks.dmi'
 	icon_state = "broken_bottle"
 	force = 10
-	throwforce = 5
+	throw_force = 5
 	throw_speed = 3
 	throw_range = 5
 	item_state = "beer"
@@ -229,15 +232,15 @@
 	. = ..()
 	reagents.add_reagent("vodka", 100)
 
-/obj/item/reagent_containers/food/drinks/bottle/tequilla
-	name = "Caccavo Guaranteed Quality Tequilla"
+/obj/item/reagent_containers/food/drinks/bottle/tequila
+	name = "Caccavo Guaranteed Quality Tequila"
 	desc = "Made from premium petroleum distillates, pure thalidomide and other fine quality ingredients!"
-	icon_state = "tequillabottle"
+	icon_state = "tequilabottle"
 	center_of_mass = list("x"=16, "y"=3)
 
-/obj/item/reagent_containers/food/drinks/bottle/tequilla/Initialize(mapload)
+/obj/item/reagent_containers/food/drinks/bottle/tequila/Initialize(mapload)
 	. = ..()
-	reagents.add_reagent("tequilla", 100)
+	reagents.add_reagent("tequila", 100)
 
 /obj/item/reagent_containers/food/drinks/bottle/bottleofnothing
 	name = "Bottle of Nothing"
@@ -251,7 +254,7 @@
 
 /obj/item/reagent_containers/food/drinks/bottle/patron
 	name = "Wrapp Artiste Patron"
-	desc = "Silver laced tequilla, served in space night clubs across the galaxy."
+	desc = "Silver laced tequila, served in space night clubs across the galaxy."
 	icon_state = "patronbottle"
 	center_of_mass = list("x"=16, "y"=6)
 
@@ -556,6 +559,18 @@
 /obj/item/reagent_containers/food/drinks/bottle/lemonjuice/Initialize(mapload)
 	. = ..()
 	reagents.add_reagent("lemonjuice", 100)
+
+/obj/item/reagent_containers/food/drinks/bottle/coconutmilk
+	name = "Coconut Milk"
+	desc = "A carton of NutClarity brand coconut milk."
+	icon_state = "milkbox"
+	item_state = "carton"
+	center_of_mass = list("x"=16, "y"=8)
+	isGlass = 0
+
+/obj/item/reagent_containers/food/drinks/bottle/coconutmilk/Initialize(mapload)
+	. = ..()
+	reagents.add_reagent("coconutmilk", 100)
 
 //Small bottles
 /obj/item/reagent_containers/food/drinks/bottle/small

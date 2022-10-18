@@ -1,12 +1,13 @@
-/obj/structure/bed/chair	//YES, chairs are a type of bed, which are a type of stool. This works, believe me.	-Pete
+/obj/structure/bed/chair //YES, chairs are a type of bed, which are a type of stool. This works, believe me. -Pete //TODO: Not this.
 	name = "chair"
 	desc = "You sit in this. Either by will or force."
-	icon = 'icons/obj/furniture_vr.dmi' //VOREStation Edit - Using Eris furniture
+	icon = 'icons/obj/furniture_vr.dmi' // Using Eris furniture //TODO: Ew how about not.
 	icon_state = "chair_preview"
 	color = "#666666"
 	base_icon = "chair"
 	buckle_dir = 0
 	buckle_lying = 0 //force people to sit up in chairs when buckled
+	icon_dimension_y = 32
 	var/propelled = 0 // Check for fire-extinguisher-driven chairs
 
 /obj/structure/bed/chair/Initialize(mapload)
@@ -24,12 +25,13 @@
 		if(!SK.status)
 			to_chat(user, SPAN_NOTICE("\The [SK] is not ready to be attached!"))
 			return
-		user.drop_item()
-		var/obj/structure/bed/chair/e_chair/E = new (src.loc, material.name)
+		if(!user.attempt_void_item_for_installation(SK))
+			return
+		var/obj/structure/bed/chair/e_chair/E = new (loc, material.name)
 		playsound(src.loc, 'sound/items/Deconstruct.ogg', 50, 1)
 		E.setDir(dir)
 		E.part = SK
-		SK.loc = E
+		SK.forceMove(E)
 		SK.master = E
 		qdel(src)
 
@@ -40,7 +42,12 @@
 		rotate_clockwise()
 	return
 
-/obj/structure/bed/chair/post_buckle_mob()
+/obj/structure/bed/chair/mob_buckled(mob/M, flags, mob/user, semantic)
+	. = ..()
+	update_icon()
+
+/obj/structure/bed/chair/mob_unbuckled(mob/M, flags, mob/user, semantic)
+	. = ..()
 	update_icon()
 
 /obj/structure/bed/chair/update_icon()
@@ -128,8 +135,7 @@
 	return ..(mapload, "steel", "orange")
 
 /obj/structure/bed/chair/office
-	anchored = 0
-	buckle_movable = 1
+	anchored = FALSE
 
 /obj/structure/bed/chair/office/update_icon()
 	return
@@ -139,25 +145,10 @@
 		return
 	..()
 
-/obj/structure/bed/chair/office/Move()
-	..()
-	if(has_buckled_mobs())
-		for(var/A in buckled_mobs)
-			var/mob/living/occupant = A
-			occupant.buckled = null
-			occupant.Move(src.loc)
-			occupant.buckled = src
-			if (occupant && (src.loc != occupant.loc))
-				if (propelled)
-					for (var/mob/O in src.loc)
-						if (O != occupant)
-							Bump(O)
-				else
-					unbuckle_mob()
-
 /obj/structure/bed/chair/office/Bump(atom/A)
 	..()
-	if(!has_buckled_mobs())	return
+	if(!has_buckled_mobs())
+		return
 
 	if(propelled)
 		for(var/a in buckled_mobs)
@@ -166,7 +157,7 @@
 			var/def_zone = ran_zone()
 			var/blocked = occupant.run_armor_check(def_zone, "melee")
 			var/soaked = occupant.get_armor_soak(def_zone, "melee")
-			occupant.throw_at(A, 3, propelled)
+			occupant.throw_at_old(A, 3, propelled)
 			occupant.apply_effect(6, STUN, blocked)
 			occupant.apply_effect(6, WEAKEN, blocked)
 			occupant.apply_effect(6, STUTTER, blocked)
@@ -406,8 +397,13 @@
 	base_icon = "pewmiddle"
 	icon_state = "pewmiddle"
 
-/obj/structure/bed/chair/pew/Initialize(mapload, material_key)
-	return ..(mapload, "wood")
+
+/obj/structure/bed/chair/pew/Initialize(mapload, new_material)
+	. = ..(mapload)
+	if(!new_material)
+		new_material = MAT_WOOD
+	material = get_material_by_name(new_material)
+	update_icon()
 
 /obj/structure/bed/chair/pew/left
 	icon_state = "pewend_left"

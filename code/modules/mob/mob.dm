@@ -27,9 +27,15 @@
 		var/datum/atom_hud/alternate_appearance/AA = v
 		AA.onNewMob(src)
 	init_rendering()
-	hook_vr("mob_new",list(src)) //VOREStation Code
-	update_transform() // Some mobs may start bigger or smaller than normal.
-	return ..()
+	hook_vr("mob_new",list(src))
+	// resize
+	update_transform()
+	// offset
+	reset_pixel_offsets()
+	. = ..()
+	update_config_movespeed()
+	update_movespeed(TRUE)
+	initialize_actionspeed()
 
 /**
  * Delete a mob
@@ -58,9 +64,10 @@
 	dead_mob_list -= src
 	living_mob_list -= src
 	unset_machine()
-	if(hud_used)
-		QDEL_NULL(hud_used)
-	dispose_rendering()
+	movespeed_modification = null
+	actionspeed_modification = null
+	for(var/alert in alerts)
+		clear_alert(alert)
 	if(client)
 		for(var/atom/movable/screen/movable/spell_master/spell_master in spell_masters)
 			qdel(spell_master)
@@ -70,6 +77,9 @@
 		spellremove(src)
 	// this kicks out client
 	ghostize()
+	if(hud_used)
+		QDEL_NULL(hud_used)
+	dispose_rendering()
 	if(plane_holder)
 		QDEL_NULL(plane_holder)
 	// with no client, we can safely remove perspective this way snow-flakily
@@ -147,7 +157,7 @@
 			else
 				msg = alt
 				type = alt_type
-				if ((type & 1) && (sdisabilities & BLIND))
+				if ((type & 1) && (sdisabilities & SDISABILITY_NERVOUS))
 					return
 	// Added voice muffling for Issue 41.
 	if(stat == UNCONSCIOUS || sleeping > 0)
@@ -157,17 +167,6 @@
 		if(teleop)
 			to_chat(teleop, create_text_tag("body", "BODY:", teleop) + "[msg]")
 	return
-
-/**
- * Returns an amount of power drawn from the object (-1 if it's not viable).
- * Not sure where to define this, so it can sit here for the rest of time.
- *
- * * @params
- * * [drain_check] If is set it will not actually drain power, just return a value.
- * * [surge] If is set, it will destroy/damage the recipient and not return any power.
- */
-/atom/proc/drain_power(var/drain_check,var/surge, var/amount = 0)
-	return -1
 
 /**
  * Show a message to all mobs in earshot of this one
@@ -205,16 +204,11 @@
 			return M
 	return 0
 
-/mob/proc/Life()
-//	if(organStructure)
-//		organStructure.ProcessOrgans()
-	return
-
 #define UNBUCKLED 0
 #define PARTIALLY_BUCKLED 1
 #define FULLY_BUCKLED 2
 
-/mob/proc/buckled()
+/mob/proc/is_buckled()
 	// Preliminary work for a future buckle rewrite,
 	// where one might be fully restrained (like an elecrical chair), or merely secured (shuttle chair, keeping you safe but not otherwise restrained from acting)
 	if(!buckled)
@@ -222,10 +216,10 @@
 	return restrained() ? FULLY_BUCKLED : PARTIALLY_BUCKLED
 
 /mob/proc/is_blind()
-	return ((sdisabilities & BLIND) || blinded || incapacitated(INCAPACITATION_KNOCKOUT))
+	return ((sdisabilities & SDISABILITY_NERVOUS) || blinded || incapacitated(INCAPACITATION_KNOCKOUT))
 
 /mob/proc/is_deaf()
-	return ((sdisabilities & DEAF) || ear_deaf || incapacitated(INCAPACITATION_KNOCKOUT))
+	return ((sdisabilities & SDISABILITY_DEAF) || ear_deaf || incapacitated(INCAPACITATION_KNOCKOUT))
 
 /mob/proc/is_physically_disabled()
 	return incapacitated(INCAPACITATION_DISABLED)
@@ -263,8 +257,6 @@
 /mob/proc/restrained()
 	return
 
-/mob/proc/show_inv(mob/user as mob)
-	return
 /**
  * Examine a mob
  *
@@ -281,22 +273,23 @@
 		return
 
 	if(is_blind()) //blind people see things differently (through touch)
+		to_chat(src, SPAN_WARNING("Something is there but you can't see it!"))
 		return
 
 	face_atom(A)
-	if(!isobserver(src) && !isturf(A) && A != src)
-		if(A.loc != src)
-			for(var/mob/M in viewers(4, src))
-				if(M == src || M.is_blind())
-					continue
-				if(M.client && M.client.is_preference_enabled(/datum/client_preference/examine_look))
-					to_chat(M, "<span class='tinynotice'><b>\The [src]</b> looks at \the [A].</span>")
+	if(!isobserver(src) && !isturf(A) && (get_top_level_atom(A) != src) && get_turf(A))
+		for(var/mob/M in viewers(4, src))
+			if(M == src || M.is_blind())
+				continue
+			if(M.client && M.client.is_preference_enabled(/datum/client_preference/examine_look))
+				to_chat(M, SPAN_TINYNOTICE("<b>\The [src]</b> looks at \the [A]."))
 
 	var/list/result
 	if(client)
 		result = A.examine(src) // if a tree is examined but no client is there to see it, did the tree ever really exist?
 
-	to_chat(src, result.Join("\n"))
+	to_chat(src, "<blockquote class='info'>[result.Join("\n")]</blockquote>")
+	SEND_SIGNAL(src, COMSIG_MOB_EXAMINATE, A)
 
 /**
  * Point at an atom
@@ -435,7 +428,7 @@
 	set src in usr
 	if(usr != src)
 		to_chat(usr, "No.")
-	var/msg = sanitize(input(usr,"Set the flavor text in your 'examine' verb.","Flavor Text",html_decode(flavor_text)) as message|null, extra = 0)	//VOREStation Edit: separating out OOC notes
+	var/msg = sanitize(input(usr,"Set the flavor text in your 'examine' verb.","Flavor Text",html_decode(flavor_text)) as message|null, extra = 0)
 
 	if(msg != null)
 		flavor_text = msg
@@ -626,6 +619,7 @@ GLOBAL_VAR_INIT(exploit_warn_spam_prevention, 0)
 		var/msg = "[key_name_admin(src)]([ADMIN_KICK(src)]) attempted to use the .click macro!"
 		log_admin(msg)
 		message_admins(msg)
+		log_click("DROPPED: .click macro from [ckey] at [argu], [sec], [number1]. [number2]")
 		GLOB.exploit_warn_spam_prevention = world.time + 10
 
 /mob/verb/DisDblClick(argu = null as anything, sec = "" as text, number1 = 0 as num  , number2 = 0 as num)
@@ -636,6 +630,7 @@ GLOBAL_VAR_INIT(exploit_warn_spam_prevention, 0)
 		var/msg = "[key_name_admin(src)]([ADMIN_KICK(src)]) attempted to use the .dblclick macro!"
 		log_admin(msg)
 		message_admins(msg)
+		log_click("DROPPED: .dblclick macro from [ckey] at [argu], [sec], [number1]. [number2]")
 		GLOB.exploit_warn_spam_prevention = world.time + 10
 
 /**
@@ -646,6 +641,10 @@ GLOBAL_VAR_INIT(exploit_warn_spam_prevention, 0)
  * * handles the strip panel equip and unequip as well if "item" sent
  */
 /mob/Topic(href, href_list)
+	if(href_list["strip"])
+		var/op = href_list["strip"]
+		handle_strip_topic(usr, href_list, op)
+		return
 	if(href_list["mach_close"])
 		var/t1 = text("window=[href_list["mach_close"]]")
 		unset_machine()
@@ -671,17 +670,11 @@ GLOBAL_VAR_INIT(exploit_warn_spam_prevention, 0)
 						return 1
 	return 0
 
-/**
- * Controls if a mouse drop succeeds (return null if it doesnt)
- */
-/mob/MouseDrop(mob/M as mob)
-	..()
-	if(M != usr) return
-	if(usr == src) return
-	if(!Adjacent(usr)) return
-	if(usr.incapacitated(INCAPACITATION_STUNNED | INCAPACITATION_FORCELYING | INCAPACITATION_KNOCKOUT | INCAPACITATION_RESTRAINED)) return //Incapacitated.
-	if(istype(M,/mob/living/silicon/ai)) return
-	show_inv(usr)
+/mob/OnMouseDrop(atom/over, mob/user, proximity, params)
+	. = ..()
+	if(over != user)
+		return
+	. |= mouse_drop_strip_interaction(user)
 
 /mob/proc/can_use_hands()
 	return
@@ -731,7 +724,7 @@ GLOBAL_VAR_INIT(exploit_warn_spam_prevention, 0)
 		//var/list/L = list()
 		stat("Ping", "[round(client.lastping,1)]ms (Avg: [round(client.avgping,1)]ms)")
 		//L += SSmapping.stat_map_name
-		//L += "Round ID: [GLOB.round_id || "NULL"]"
+		stat("Round ID", "[GLOB.round_id || "ERROR"]")
 		// VIRGO START
 		stat("Station Time", stationtime2text())
 		stat("Station Date", stationdate2text())
@@ -801,120 +794,11 @@ GLOBAL_VAR_INIT(exploit_warn_spam_prevention, 0)
 /mob/proc/can_stand_overridden()
 	return 0
 
-/// Updates canmove, lying and icons. Could perhaps do with a rename but I can't think of anything to describe it.
-/mob/proc/update_canmove()
-	return canmove
-
 /// This might need a rename but it should replace the can this mob use things check
 /mob/proc/IsAdvancedToolUser()
 	return 0
 
-/mob/proc/Stun(amount)
-	if(status_flags & CANSTUN)
-		facing_dir = null
-		stunned = max(max(stunned,amount),0) //can't go below 0, getting a low amount of stun doesn't lower your current stun
-		update_canmove()	//updates lying, canmove and icons
-	return
 
-/mob/proc/SetStunned(amount) //if you REALLY need to set stun to a set amount without the whole "can't go below current stunned"
-	if(status_flags & CANSTUN)
-		stunned = max(amount,0)
-		update_canmove()	//updates lying, canmove and icons
-	return
-
-/mob/proc/AdjustStunned(amount)
-	if(status_flags & CANSTUN)
-		stunned = max(stunned + amount,0)
-		update_canmove()	//updates lying, canmove and icons
-	return
-
-/mob/proc/Weaken(amount)
-	if(status_flags & CANWEAKEN)
-		facing_dir = null
-		weakened = max(max(weakened,amount),0)
-		update_canmove()	//updates lying, canmove and icons
-	return
-
-/mob/proc/SetWeakened(amount)
-	if(status_flags & CANWEAKEN)
-		weakened = max(amount,0)
-		update_canmove()	//can you guess what this does yet?
-	return
-
-/mob/proc/AdjustWeakened(amount)
-	if(status_flags & CANWEAKEN)
-		weakened = max(weakened + amount,0)
-		update_canmove()	//updates lying, canmove and icons
-	return
-
-/mob/proc/Paralyse(amount)
-	if(status_flags & CANPARALYSE)
-		facing_dir = null
-		paralysis = max(max(paralysis,amount),0)
-	return
-
-/mob/proc/SetParalysis(amount)
-	if(status_flags & CANPARALYSE)
-		paralysis = max(amount,0)
-	return
-
-/mob/proc/AdjustParalysis(amount)
-	if(status_flags & CANPARALYSE)
-		paralysis = max(paralysis + amount,0)
-	return
-
-/mob/proc/Sleeping(amount)
-	facing_dir = null
-	sleeping = max(max(sleeping,amount),0)
-	return
-
-/mob/proc/SetSleeping(amount)
-	sleeping = max(amount,0)
-	return
-
-/mob/proc/AdjustSleeping(amount)
-	sleeping = max(sleeping + amount,0)
-	return
-
-/mob/proc/Confuse(amount)
-	confused = max(max(confused,amount),0)
-	return
-
-/mob/proc/SetConfused(amount)
-	confused = max(amount,0)
-	return
-
-/mob/proc/AdjustConfused(amount)
-	confused = max(confused + amount,0)
-	return
-
-/mob/proc/Blind(amount)
-	eye_blind = max(max(eye_blind,amount),0)
-	return
-
-/mob/proc/SetBlinded(amount)
-	eye_blind = max(amount,0)
-	return
-
-/mob/proc/AdjustBlinded(amount)
-	eye_blind = max(eye_blind + amount,0)
-	return
-
-/mob/proc/Resting(amount)
-	facing_dir = null
-	resting = max(max(resting,amount),0)
-	update_canmove()
-	return
-
-/mob/proc/SetResting(amount)
-	resting = max(amount,0)
-	update_canmove()
-	return
-
-/mob/proc/AdjustResting(amount)
-	resting = max(resting + amount,0)
-	update_canmove()
-	return
 
 /mob/proc/AdjustLosebreath(amount)
 	losebreath = clamp(0, losebreath + amount, 25)
@@ -924,6 +808,18 @@ GLOBAL_VAR_INIT(exploit_warn_spam_prevention, 0)
 
 /mob/proc/get_species_name()
 	return ""
+
+/**
+ * DO NOT USE THIS
+ *
+ * this should be phased out for get_species_id().
+ */
+/mob/proc/get_true_species_name()
+	return ""
+
+// todo: species vs subspecies
+// /mob/proc/get_species_id()
+// 	return
 
 /mob/proc/flash_weak_pain()
 	flick("weak_pain",pain)
@@ -1060,17 +956,18 @@ GLOBAL_VAR_INIT(exploit_warn_spam_prevention, 0)
 	else
 		to_chat(usr, "You are now facing [dir2text(facing_dir)].")
 
-/mob/proc/set_face_dir(var/newdir)
-	if(newdir == facing_dir)
-		facing_dir = null
-	else if(newdir)
-		setDir(newdir)
-		facing_dir = newdir
-	else if(facing_dir)
-		facing_dir = null
+/mob/proc/set_face_dir(newdir)
+	if(newdir)
+		if(newdir == facing_dir)
+			facing_dir = null
+		else
+			facing_dir = newdir
+			setDir(newdir)
 	else
-		setDir(dir)
-		facing_dir = dir
+		if(facing_dir)
+			facing_dir = null
+		else
+			facing_dir = dir
 
 /mob/setDir()
 	if(facing_dir)
@@ -1097,61 +994,11 @@ GLOBAL_VAR_INIT(exploit_warn_spam_prevention, 0)
 	set hidden = 1
 	set_face_dir(client.client_dir(WEST))
 
-/mob/verb/eastshift()
-	set hidden = TRUE
-	if(!canface())
-		return FALSE
-	if(pixel_x <= 16)
-		pixel_x++
-		is_shifted = TRUE
-
-/mob/verb/westshift()
-	set hidden = TRUE
-	if(!canface())
-		return FALSE
-	if(pixel_x >= -16)
-		pixel_x--
-		is_shifted = TRUE
-
-/mob/verb/northshift()
-	set hidden = TRUE
-	if(!canface())
-		return FALSE
-	if(pixel_y <= 16)
-		pixel_y++
-		is_shifted = TRUE
-
-/mob/verb/southshift()
-	set hidden = TRUE
-	if(!canface())
-		return FALSE
-	if(pixel_y >= -16)
-		pixel_y--
-		is_shifted = TRUE
-
 /mob/proc/adjustEarDamage()
 	return
 
 /mob/proc/setEarDamage()
 	return
-
-//! ## Throwing stuff
-
-/mob/proc/toggle_throw_mode()
-	if (src.in_throw_mode)
-		throw_mode_off()
-	else
-		throw_mode_on()
-
-/mob/proc/throw_mode_off()
-	src.in_throw_mode = 0
-	if(src.throw_icon) //in case we don't have the HUD and we use the hotkey
-		src.throw_icon.icon_state = "act_throw_off"
-
-/mob/proc/throw_mode_on()
-	src.in_throw_mode = 1
-	if(src.throw_icon)
-		src.throw_icon.icon_state = "act_throw_on"
 
 /mob/proc/isSynthetic()
 	return 0
@@ -1220,10 +1067,6 @@ GLOBAL_VAR_INIT(exploit_warn_spam_prevention, 0)
 	return
 
 /mob/proc/swap_hand()
-	return
-
-//Throwing stuff
-/mob/proc/throw_item(atom/target)
 	return
 
 /mob/proc/will_show_tooltip()
@@ -1308,3 +1151,81 @@ GLOBAL_VAR_INIT(exploit_warn_spam_prevention, 0)
  */
 /mob/proc/allow_examine(atom/A)
 	return client && (client.eye == src)
+
+/// Checks for slots that are currently obscured by other garments.
+/mob/proc/check_obscured_slots()
+	return
+
+//! Pixel Offsets
+/mob/proc/get_buckled_pixel_x_offset()
+	if(!buckled)
+		return 0
+	return buckled.get_centering_pixel_x_offset(NONE, src) - get_centering_pixel_x_offset() + buckled.buckle_pixel_x
+
+/mob/proc/get_buckled_pixel_y_offset()
+	if(!buckled)
+		return 0
+	return buckled.get_centering_pixel_y_offset(NONE, src) - get_centering_pixel_y_offset() + buckled.buckle_pixel_y
+
+/mob/get_managed_pixel_x()
+	return ..() + shift_pixel_x + get_buckled_pixel_x_offset()
+
+/mob/get_managed_pixel_y()
+	return ..() + shift_pixel_y + get_buckled_pixel_y_offset()
+
+/mob/get_centering_pixel_x_offset(dir, atom/aligning)
+	. = ..()
+	. += shift_pixel_x
+
+/mob/get_centering_pixel_y_offset(dir, atom/aligning)
+	. = ..()
+	. += shift_pixel_y
+
+/mob/proc/reset_pixel_shifting()
+	if(!shifted_pixels)
+		return
+	shifted_pixels = FALSE
+	pixel_x -= shift_pixel_x
+	pixel_y -= shift_pixel_y
+	shift_pixel_x = 0
+	shift_pixel_y = 0
+	SEND_SIGNAL(src, COMSIG_MOVABLE_PIXEL_OFFSET_CHANGED)
+
+/mob/proc/set_pixel_shift_x(val)
+	if(!val)
+		return
+	shifted_pixels = TRUE
+	pixel_x += (val - shift_pixel_x)
+	shift_pixel_x = val
+	SEND_SIGNAL(src, COMSIG_MOVABLE_PIXEL_OFFSET_CHANGED)
+
+/mob/proc/set_pixel_shift_y(val)
+	if(!val)
+		return
+	shifted_pixels = TRUE
+	pixel_y += (val - shift_pixel_y)
+	shift_pixel_y = val
+	SEND_SIGNAL(src, COMSIG_MOVABLE_PIXEL_OFFSET_CHANGED)
+
+/mob/proc/adjust_pixel_shift_x(val)
+	if(!val)
+		return
+	shifted_pixels = TRUE
+	shift_pixel_x += val
+	pixel_x += val
+	SEND_SIGNAL(src, COMSIG_MOVABLE_PIXEL_OFFSET_CHANGED)
+
+/mob/proc/adjust_pixel_shift_y(val)
+	if(!val)
+		return
+	shifted_pixels = TRUE
+	shift_pixel_y += val
+	pixel_y += val
+	SEND_SIGNAL(src, COMSIG_MOVABLE_PIXEL_OFFSET_CHANGED)
+
+//! Reachability
+/mob/CanReachOut(atom/movable/mover, atom/target, obj/item/tool, list/cache)
+	return FALSE
+
+/mob/CanReachIn(atom/movable/mover, atom/target, obj/item/tool, list/cache)
+	return FALSE

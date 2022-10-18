@@ -71,7 +71,7 @@
 		var/obj/item/implant/backup/imp = imps[imps.len]
 		imp.forceMove(get_turf(user))
 		imps -= imp
-		user.put_in_any_hand_if_possible(imp)
+		user.put_in_hands(imp)
 		update()
 	else
 		to_chat(user, "<span class='warning'>\The [src] is empty.</span>")
@@ -81,10 +81,10 @@
 /obj/item/backup_implanter/attackby(obj/W, mob/user)
 	if(istype(W,/obj/item/implant/backup))
 		if(imps.len < max_implants)
-			user.unEquip(W)
+			if(!user.attempt_insert_item_for_installation(W, src))
+				return
 			imps |= W
 			W.germ_level = 0
-			W.forceMove(src)
 			update()
 			to_chat(user, "<span class='notice'>You load \the [W] into \the [src].</span>")
 		else
@@ -127,7 +127,7 @@
 	name = "backup implant kit"
 	desc = "Box of stuff used to implant backup implants."
 	icon_state = "implant"
-	item_state_slots = list(slot_r_hand_str = "syringe_kit", slot_l_hand_str = "syringe_kit")
+	item_state_slots = list(SLOT_ID_RIGHT_HAND = "syringe_kit", SLOT_ID_LEFT_HAND = "syringe_kit")
 
 /obj/item/storage/box/backup_kit/PopulateContents()
 	for(var/i = 1 to 7)

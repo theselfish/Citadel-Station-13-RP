@@ -9,7 +9,7 @@
 	density = FALSE
 	anchored = TRUE
 	unacidable = TRUE
-	pass_flags = PASSTABLE
+	pass_flags = ATOM_PASS_TABLE
 	mouse_opacity = 0
 
 	////TG PROJECTILE SYTSEM
@@ -79,8 +79,6 @@
 	var/list/permutated = list() // we've passed through these atoms, don't try to hit them again
 	var/p_x = 16
 	var/p_y = 16			// the pixel location of the tile that the player clicked. Default is the center
-
-	//Misc/Polaris variables
 
 	var/def_zone = ""	//Aiming at
 	var/mob/firer = null//Who shot it
@@ -239,7 +237,7 @@
 	if(AM.is_incorporeal())
 		return
 	..()
-	if(isliving(AM) && !(pass_flags & PASSMOB))
+	if(isliving(AM) && !check_pass_flags(ATOM_PASS_MOB))
 		var/mob/living/L = AM
 		if(can_hit_target(L, permutated, (AM == original)))
 			Bump(AM)
@@ -355,7 +353,7 @@
 	if(.)
 		if(temporary_unstoppable_movement)
 			temporary_unstoppable_movement = FALSE
-			DISABLE_BITFIELD(movement_type, UNSTOPPABLE)
+			movement_type &= ~UNSTOPPABLE
 		if(fired && can_hit_target(original, permutated, TRUE))
 			Bump(original)
 

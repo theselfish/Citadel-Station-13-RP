@@ -34,7 +34,7 @@
 	if(!data["donor"] || istype(data["donor"], /mob/living/carbon/human))
 		blood_splatter(T, src, 1)
 	else if(istype(data["donor"], /mob/living/carbon/alien))
-		var/obj/effect/decal/cleanable/blood/B = blood_splatter(T, src, 1)
+		var/obj/effect/debris/cleanable/blood/B = blood_splatter(T, src, 1)
 		if(B)
 			B.blood_DNA["UNKNOWN DNA STRUCTURE"] = "X*"
 
@@ -54,18 +54,18 @@
 		M.heal_organ_damage(0.2 * removed * volume_mod, 0)	// More 'effective' blood means more usable material.
 		M.nutrition += 20 * removed * volume_mod
 		M.add_chemical_effect(CE_BLOODRESTORE, 4 * removed)
-		M.adjustToxLoss(removed / 2)	// Still has some water in the form of plasma.
+		M.adjustToxLoss(removed / 2) // Still has some water in the form of plasma.
 		return
 
 	var/is_vampire = M.species.is_vampire
 	if(is_vampire)
 		handle_vampire(M, alien, removed, is_vampire)
 	if(effective_dose > 5)
-		if(!is_vampire) //VOREStation Edit.
-			M.adjustToxLoss(removed) //VOREStation Edit.
+		if(!is_vampire)
+			M.adjustToxLoss(removed)
 	if(effective_dose > 15)
-		if(!is_vampire) //VOREStation Edit.
-			M.adjustToxLoss(removed) //VOREStation Edit.
+		if(!is_vampire)
+			M.adjustToxLoss(removed)
 	if(data && data["virus2"])
 		var/list/vlist = data["virus2"]
 		if(vlist.len)
@@ -186,7 +186,7 @@
 
 	if (environment && environment.temperature > min_temperature) // Abstracted as steam or something
 		var/removed_heat = between(0, volume * WATER_LATENT_HEAT, -environment.get_thermal_energy_change(min_temperature))
-		environment.add_thermal_energy(-removed_heat)
+		environment.adjust_thermal_energy(-removed_heat)
 		if (prob(5))
 			T.visible_message("<span class='warning'>The water sizzles as it lands on \the [T]!</span>")
 
@@ -216,25 +216,12 @@
 		L.adjust_fire_stacks(-(amount / 5))
 		remove_self(needed)
 
-/*  //VOREStation Edit Start. Stops slimes from dying from water. Fixes fuel affect_ingest, too.
-/datum/reagent/water/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
-	if(alien == IS_SLIME)
-		M.adjustToxLoss(6 * removed)
-	else
-		..()
-*/
 /datum/reagent/water/affect_ingest(var/mob/living/carbon/M, var/alien, var/removed)
 	//if(alien == IS_SLIME)
 	//	M.adjustToxLoss(6 * removed)
 	//else
 	M.adjust_hydration(removed * 10)
 	..()
-/*
-/datum/reagent/water/affect_touch(var/mob/living/carbon/M, var/alien, var/removed)
-	if(alien == IS_SLIME)
-		M.visible_message("<span class='warning'>[M]'s flesh sizzles where the water touches it!</span>", "<span class='danger'>Your flesh burns in the water!</span>")
-	..()
-*/  //VOREStation Edit End.
 
 /datum/reagent/fuel
 	name = "Welding fuel"
@@ -248,7 +235,7 @@
 	glass_desc = "Unless you are an industrial tool, this is probably not safe for consumption."
 
 /datum/reagent/fuel/touch_turf(var/turf/T, var/amount)
-	new /obj/effect/decal/cleanable/liquid_fuel(T, amount, FALSE)
+	new /obj/effect/debris/cleanable/liquid_fuel(T, amount, FALSE)
 	remove_self(amount)
 	return
 

@@ -7,6 +7,7 @@ GLOBAL_LIST_BOILERPLATE(all_seed_packs, /obj/item/seeds)
 	name = "packet of seeds"
 	icon = 'icons/obj/seeds.dmi'
 	icon_state = "blank"
+	worn_render_flags = WORN_RENDER_INHAND_NO_RENDER | WORN_RENDER_SLOT_NO_RENDER
 	w_class = ITEMSIZE_SMALL
 
 	var/seed_type
@@ -159,6 +160,12 @@ GLOBAL_LIST_BOILERPLATE(all_seed_packs, /obj/item/seeds)
 
 /obj/item/seeds/carrotseed
 	seed_type = "carrot"
+
+/obj/item/seeds/taroseed
+	seed_type = "taro"
+
+/obj/item/seeds/coconutseed
+	seed_type = "coconut"
 
 /obj/item/seeds/reishimycelium
 	seed_type = "reishi"
@@ -327,3 +334,12 @@ GLOBAL_LIST_BOILERPLATE(all_seed_packs, /obj/item/seeds)
 
 /obj/item/seeds/rose/blood
 	seed_type = "bloodrose"
+
+/obj/item/seeds/ashlander
+	seed_type = "pyrrhlea"
+
+/obj/item/seeds/ashlander/bentars
+	seed_type = "bentars"
+
+/obj/item/seeds/ashlander/juhtak
+	seed_type = "juhtak"

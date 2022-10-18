@@ -62,7 +62,6 @@
 
 	beaker = new /obj/item/reagent_containers/glass/bottle(src)
 	default_apply_parts()
-	RefreshParts()
 
 	item_list = list()
 	item_list["Food Items"] = list(
@@ -116,8 +115,7 @@
 /obj/machinery/biogenerator/proc/insert_beaker(mob/living/user, obj/item/reagent_containers/glass/inserted_beaker)
 	if(!can_interact(user))
 		return
-
-	if(!user.transferItemToLoc(inserted_beaker, src))
+	if(!user.attempt_insert_item_for_installation(inserted_beaker, src))
 		return
 
 	if(beaker)
@@ -269,8 +267,8 @@
 		if(beaker)
 			to_chat(user, SPAN_NOTICE("\The [src] is already loaded."))
 		else
-			user.remove_from_mob(O)
-			O.loc = src
+			if(!user.attempt_insert_item_for_installation(O, src))
+				return
 			beaker = FALSE
 			SStgui.update_uis(src)
 	else if(processing)
@@ -301,16 +299,10 @@
 		if(i >= 10)
 			to_chat(user, SPAN_NOTICE("\The [src] is full! Activate it."))
 		else
-			user.remove_from_mob(O)
-			O.loc = src
+			if(!user.attempt_insert_item_for_installation(O, src))
+				return
 			to_chat(user, SPAN_NOTICE("You put \the [O] in \the [src]"))
 	update_appearance()
-	return
-
-/obj/machinery/biogenerator/attack_hand(mob/user)
-	if(machine_stat & BROKEN)
-		return
-	ui_interact(user)
 
 /obj/machinery/biogenerator/proc/activate()
 	if(usr.stat)

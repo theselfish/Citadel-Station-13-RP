@@ -70,7 +70,7 @@
 		cure(mob)
 		return
 
-	if(mob.stat == 2)
+	if(mob.stat == DEAD)
 		return
 	if(stage <= 1 && clicks == 0) 	// with a certain chance, the mob may become immune to the disease before it starts properly
 		if(prob(5))
@@ -93,12 +93,11 @@
 		else
 			resistance += rand(1,9)
 
-	//VOREStation Add Start - Corophazine can treat higher stages
+	// Corophazine can treat higher stages
 	var/antibiotics = mob.chem_effects[CE_ANTIBIOTIC]
 	if(antibiotics == ANTIBIO_SUPER)
 		if(prob(70))
 			src.cure(mob)
-	//VOREStation Add End
 
 	//Resistance is capped at 90 without being manually set to 100
 	if(resistance > 90 && resistance < 100)
@@ -282,7 +281,7 @@ var/global/list/virusDB = list()
 	virusDB["[uniqueID]"] = v
 	return 1
 
-proc/virus2_lesser_infection()
+/proc/virus2_lesser_infection()
 	var/list/candidates = list()	//list of candidate keys
 
 	for(var/mob/living/carbon/human/G in player_list)
@@ -295,7 +294,7 @@ proc/virus2_lesser_infection()
 
 	infect_mob_random_lesser(candidates[1])
 
-proc/virus2_greater_infection()
+/proc/virus2_greater_infection()
 	var/list/candidates = list()	//list of candidate keys
 
 	for(var/mob/living/carbon/human/G in player_list)
@@ -307,7 +306,7 @@ proc/virus2_greater_infection()
 
 	infect_mob_random_greater(candidates[1])
 
-proc/virology_letterhead(var/report_name)
+/proc/virology_letterhead(var/report_name)
 	return {"
 		<center><h1><b>[report_name]</b></h1></center>
 		<center><small><i>[station_name()] Virology Lab</i></small></center>

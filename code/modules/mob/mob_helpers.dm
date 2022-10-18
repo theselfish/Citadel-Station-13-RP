@@ -42,10 +42,10 @@
 /mob/living/carbon/human/isMonkey()
 	return istype(species, /datum/species/monkey)
 
-proc/isdeaf(A)
+/proc/isdeaf(A)
 	if(istype(A, /mob))
 		var/mob/M = A
-		return (M.sdisabilities & DEAF) || M.ear_deaf
+		return (M.sdisabilities & SDISABILITY_DEAF) || M.ear_deaf
 	return 0
 
 /mob/proc/get_ear_protection()
@@ -57,24 +57,24 @@ proc/isdeaf(A)
 /mob/proc/is_cloaked()
 	return FALSE
 
-proc/hasorgans(A) // Fucking really??
+/proc/hasorgans(A) // Fucking really??
 	return ishuman(A)
 
-proc/iscuffed(A)
+/proc/iscuffed(A)
 	if(istype(A, /mob/living/carbon))
 		var/mob/living/carbon/C = A
 		if(C.handcuffed)
 			return 1
 	return 0
 
-proc/hassensorlevel(A, var/level)
+/proc/hassensorlevel(A, var/level)
 	var/mob/living/carbon/human/H = A
 	if(istype(H) && istype(H.w_uniform, /obj/item/clothing/under))
 		var/obj/item/clothing/under/U = H.w_uniform
 		return U.sensor_mode >= level
 	return 0
 
-proc/getsensorlevel(A)
+/proc/getsensorlevel(A)
 	var/mob/living/carbon/human/H = A
 	if(istype(H) && istype(H.w_uniform, /obj/item/clothing/under))
 		var/obj/item/clothing/under/U = H.w_uniform
@@ -87,8 +87,9 @@ proc/getsensorlevel(A)
 
 /**
  * Returns true if the user should have admin AI level access
+ *! TO-BE-DEPRICATED
  */
-/proc/IsAdminGhost(var/mob/user)
+/proc/IsAdminGhost(mob/user)
 	if(!user)		//Are they a mob? Auto interface updates call this with a null src
 		return
 	if(!user.client) // Do they have a client?
@@ -96,6 +97,26 @@ proc/getsensorlevel(A)
 	if(!isobserver(user)) // Are they a ghost?
 		return
 	if(!check_rights(R_ADMIN, 0, user)) // Are they allowed?
+		return
+	if(!user.client.AI_Interact) // Do they have it enabled?
+		return
+	return TRUE
+
+/// Is the passed in mob a ghost with admin powers, doesn't check for AI interact like isAdminGhost() used to
+/proc/isAdminObserver(mob/user)
+	if(!user) //Are they a mob? Auto interface updates call this with a null src
+		return
+	if(!user.client) // Do they have a client?
+		return
+	if(!isobserver(user)) // Are they a ghost?
+		return
+	if(!check_rights_for(user.client, R_ADMIN)) // Are they allowed?
+		return
+	return TRUE
+
+/// Is the passed in mob an admin ghost WITH AI INTERACT enabled
+/proc/isAdminGhostAI(mob/user)
+	if(!isAdminObserver(user))
 		return
 	if(!user.client.AI_Interact) // Do they have it enabled?
 		return
@@ -182,8 +203,11 @@ proc/getsensorlevel(A)
 			return 1
 	return 0
 
-/mob/proc/abiotic(var/full_body = 0)
-	return 0
+/mob/proc/abiotic(full_body)
+	return FALSE
+
+/mob/proc/item_considered_abiotic(obj/item/I)
+	return I && (I.item_flags & ITEM_ABSTRACT)
 
 //converts intent-strings into numbers and back
 var/list/intents = list(INTENT_HELP,INTENT_DISARM,INTENT_GRAB,INTENT_HARM)
@@ -239,10 +263,10 @@ var/list/intents = list(INTENT_HELP,INTENT_DISARM,INTENT_GRAB,INTENT_HARM)
 			else
 				hud_used.action_intent.icon_state = INTENT_HELP
 
-proc/is_blind(A)
+/proc/is_blind(A)
 	if(istype(A, /mob/living/carbon))
 		var/mob/living/carbon/C = A
-		if(C.sdisabilities & BLIND || C.blinded)
+		if(C.sdisabilities & SDISABILITY_NERVOUS || C.blinded)
 			return 1
 	return 0
 
@@ -564,20 +588,21 @@ var/list/global/organ_rel_size = list(
 		return A.sound_env
 
 /mob/proc/position_hud_item(var/obj/item/item, var/slot)
+	var/held = is_holding(item)
 	if(!istype(hud_used) || !slot || !LAZYLEN(hud_used.slot_info))
 		return
 
 	//They may have hidden their entire hud but the hands
-	if(!hud_used.hud_shown && slot > slot_r_hand)
+	if(!hud_used.hud_shown && held)
 		item.screen_loc = null
 		return
 
 	//They may have hidden the icons in the bottom left with the hide button
-	if(!hud_used.inventory_shown && slot > slot_r_store)
+	if(!hud_used.inventory_shown && !held && (resolve_inventory_slot_meta(slot)?.inventory_slot_flags & INV_SLOT_HUD_REQUIRES_EXPAND))
 		item.screen_loc = null
 		return
 
-	var/screen_place = hud_used.slot_info["[slot]"]
+	var/screen_place = held? hud_used.hand_info["[get_held_index(item)]"] : hud_used.slot_info["[slot]"]
 	if(!screen_place)
 		item.screen_loc = null
 		return
@@ -586,3 +611,17 @@ var/list/global/organ_rel_size = list(
 
 /mob/proc/can_see_reagents()
 	return stat == DEAD || issilicon(src) //Dead guys and silicons can always see reagents
+
+//Ingnores the possibility of breaking tags.
+/proc/stars_no_html(text, pr, re_encode)
+	text = html_decode(text) //We don't want to screw up escaped characters
+	. = list()
+	for(var/i = 1, i <= length_char(text), i++)
+		var/char = copytext_char(text, i, i+1)
+		if(char == " " || prob(pr))
+			. += char
+		else
+			. += "*"
+	. = JOINTEXT(.)
+	if(re_encode)
+		. = html_encode(.)

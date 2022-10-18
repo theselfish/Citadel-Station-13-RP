@@ -96,11 +96,13 @@
 	if(on)
 		turn_on() // Update lights and other stuff
 
-/mob/living/bot/Life()
-	..()
+/mob/living/bot/Life(seconds, times_fired)
+	if((. = ..()))
+		return
 	if(health <= 0)
 		death()
-		return
+		return TRUE
+
 	SetWeakened(0)
 	SetStunned(0)
 	SetParalysis(0)
@@ -144,7 +146,7 @@
 		if(!locked)
 			open = !open
 			to_chat(user, "<span class='notice'>Maintenance panel is now [open ? "opened" : "closed"].</span>")
-			playsound(src, O.usesound, 50, 1)
+			playsound(src, O.tool_sound, 50, 1)
 		else
 			to_chat(user, "<span class='notice'>You need to unlock the controls first.</span>")
 		return
@@ -161,7 +163,7 @@
 					fireloss = fireloss - 10
 				updatehealth()
 				user.visible_message("<span class='notice'>[user] repairs [src].</span>","<span class='notice'>You repair [src].</span>")
-				playsound(src, O.usesound, 50, 1)
+				playsound(src, O.tool_sound, 50, 1)
 			else
 				to_chat(user, "<span class='notice'>Unable to repair with the maintenance panel closed.</span>")
 		else
@@ -192,7 +194,8 @@
 /mob/living/bot/Bump(var/atom/A)
 	if(on && botcard && istype(A, /obj/machinery/door))
 		var/obj/machinery/door/D = A
-		if(!istype(D, /obj/machinery/door/firedoor) && !istype(D, /obj/machinery/door/blast) && !istype(D, /obj/machinery/door/airlock/lift) && D.check_access(botcard))	//VOREStation Edit: Elevator safety precaution
+		// Elevator safety precaution
+		if(!istype(D, /obj/machinery/door/firedoor) && !istype(D, /obj/machinery/door/blast) && !istype(D, /obj/machinery/door/airlock/lift) && D.check_access(botcard))
 			D.open()
 	else
 		..()

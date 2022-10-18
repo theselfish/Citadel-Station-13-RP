@@ -1,5 +1,4 @@
 /// Multiplier for amount of power cyborgs use.
-#define CYBORG_POWER_USAGE_MULTIPLIER 2
 /datum/category_item/catalogue/fauna/silicon/robot
 	name = "Silicons - Robot"
 	desc = "The most common form of Silicon encountered on the Frontier, \
@@ -43,6 +42,9 @@
 	maxHealth = 200
 	health = 200
 	catalogue_data = list(/datum/category_item/catalogue/fauna/silicon/robot/cyborg)
+
+	buckle_allowed = TRUE
+	buckle_flags = BUCKLING_NO_USER_BUCKLE_OTHER_TO_SELF
 
 	mob_bump_flag = ROBOT
 	mob_swap_flags = ~HEAVY
@@ -201,6 +203,8 @@
 
 	add_robot_verbs()
 
+	AddComponent(/datum/component/riding_filter/mob/robot)
+
 /mob/living/silicon/robot/proc/init()
 	aiCamera = new/obj/item/camera/siliconcam/robot_camera(src)
 	laws = new /datum/ai_laws/nanotrasen()
@@ -223,24 +227,17 @@
 		lawsync()
 		photosync()
 
-/mob/living/silicon/robot/drain_power(var/drain_check, var/surge, var/amount = 0)
-
-	if(drain_check)
-		return 1
-
-	if(!cell || !cell.charge)
+/mob/living/silicon/robot/drain_energy(datum/actor, amount, flags)
+	if(!cell)
 		return 0
 
-	// Actual amount to drain from cell, using CELLRATE
-	var/cell_amount = amount * CELLRATE
+	if(!TIMER_COOLDOWN_CHECK(src, COOLDOWN_POWER_DRAIN_WARNING))
+		TIMER_COOLDOWN_START(src, COOLDOWN_POWER_DRAIN_WARNING, 2 SECONDS)
+		to_chat(src, SPAN_DANGER("Warning: Abnormal usage on power channel [rand(11, 29)] detected!"))
+	return cell.drain_energy(actor, amount, flags)
 
-	if(cell.charge > cell_amount)
-		// Spam Protection
-		if(prob(10))
-			to_chat(src, "<span class='danger'>Warning: Unauthorized access through power channel [rand(11,29)] detected!</span>")
-		cell.use(cell_amount)
-		return amount
-	return 0
+/mob/living/silicon/robot/can_drain_energy(datum/actor, flags)
+	return TRUE
 
 // setup the PDA and its name
 /mob/living/silicon/robot/proc/setup_PDA()
@@ -312,7 +309,7 @@
 		return
 
 	var/module_type = GLOB.robot_modules[modtype]
-	transform_with_anim()	//VOREStation edit: sprite animation
+	transform_with_anim()
 	new module_type(src)
 
 	hands.icon_state = lowertext(modtype)
@@ -364,7 +361,7 @@
 			flavor_text = module_flavour
 		else
 			flavor_text = client.prefs.flavour_texts_robot["Default"]
-		// Vorestation Edit: and meta info
+		// Meta info
 		var/meta_info = client.prefs.metadata
 		if (meta_info)
 			ooc_notes = meta_info
@@ -408,7 +405,7 @@
 	lights_on = !lights_on
 	to_chat(usr, "You [lights_on ? "enable" : "disable"] your integrated light.")
 	handle_light()
-	updateicon() //VOREStation Add - Since dogborgs have sprites for this
+	updateicon()
 
 /mob/living/silicon/robot/verb/self_diagnosis_verb()
 	set category = "Robot Commands"
@@ -507,11 +504,11 @@
 		for(var/V in components)
 			var/datum/robot_component/C = components[V]
 			if(!C.installed && istype(W, C.external_type))
+				if(!user.attempt_void_item_for_installation(W))
+					return
 				C.installed = 1
 				C.wrapped = W
 				C.install()
-				user.drop_item()
-				W.loc = null
 
 				var/obj/item/robot_parts/robot_component/WC = W
 				if(istype(WC))
@@ -526,12 +523,10 @@
 			if(bolt)
 				to_chat(user, SPAN_NOTICE("There is already a restraining bolt installed in this cyborg."))
 				return
-
 			else
-				user.drop_from_inventory(W)
-				W.forceMove(src)
+				if(!user.attempt_insert_item_for_installation(W, src))
+					return
 				bolt = W
-
 				to_chat(user, SPAN_NOTICE("You install \the [W]."))
 				return
 
@@ -645,8 +640,8 @@
 		else if(W.w_class != ITEMSIZE_NORMAL)
 			to_chat(user, "\The [W] is too [W.w_class < ITEMSIZE_NORMAL ? "small" : "large"] to fit here.")
 		else
-			user.drop_item()
-			W.loc = src
+			if(!user.attempt_insert_item_for_installation(W, src))
+				return
 			cell = W
 			to_chat(user, "You insert the power cell.")
 
@@ -666,7 +661,7 @@
 	else if(W.is_screwdriver() && opened && !cell)	// haxing
 		wiresexposed = !wiresexposed
 		to_chat(user, "The wires have been [wiresexposed ? "exposed" : "unexposed"]")
-		playsound(src, W.usesound, 50, 1)
+		playsound(src, W.tool_sound, 50, 1)
 		updateicon()
 
 	else if(W.is_screwdriver() && opened && cell)	// radio
@@ -719,9 +714,8 @@
 			to_chat(usr, "The upgrade is locked and cannot be used yet!")
 		else
 			if(U.action(src))
+				user.transfer_item_to_loc(U, src, INV_OP_FORCE)
 				to_chat(usr, "You apply the upgrade to [src]!")
-				usr.drop_item()
-				U.loc = src
 			else
 				to_chat(usr, "Upgrade error!")
 
@@ -761,7 +755,7 @@
 	return
 
 /mob/living/silicon/robot/proc/module_reset()
-	transform_with_anim() //VOREStation edit: sprite animation
+	transform_with_anim()
 	uneq_all()
 	modtype = initial(modtype)
 	hands.icon_state = initial(hands.icon_state)
@@ -773,6 +767,9 @@
 	updatename("Default")
 
 /mob/living/silicon/robot/attack_hand(mob/user)
+	. = ..()
+	if(. & CLICKCHAIN_DO_NOT_PROPAGATE)
+		return
 
 	add_fingerprint(user)
 
@@ -828,11 +825,11 @@
 	if(istype(M, /mob/living/carbon/human))
 		var/mob/living/carbon/human/H = M
 		//if they are holding or wearing a card that has access, that works
-		if(check_access(H.get_active_hand()) || check_access(H.wear_id))
+		if(check_access(H.get_active_held_item()) || check_access(H.wear_id))
 			return 1
 	else if(istype(M, /mob/living/silicon/robot))
 		var/mob/living/silicon/robot/R = M
-		if(check_access(R.get_active_hand()) || istype(R.get_active_hand(), /obj/item/card/robot))
+		if(check_access(R.get_active_held_item()) || istype(R.get_active_held_item(), /obj/item/card/robot))
 			return 1
 	return 0
 
@@ -1007,7 +1004,7 @@
 					S.dirt = 0
 				for(var/A in tile)
 					if(istype(A, /obj/effect))
-						if(istype(A, /obj/effect/rune) || istype(A, /obj/effect/decal/cleanable) || istype(A, /obj/effect/overlay))
+						if(istype(A, /obj/effect/rune) || istype(A, /obj/effect/debris/cleanable) || istype(A, /obj/effect/overlay))
 							qdel(A)
 					else if(istype(A, /obj/item))
 						var/obj/item/cleaned_item = A
@@ -1089,7 +1086,7 @@
 
 	next_click = world.time + 1
 
-	var/obj/item/W = get_active_hand()
+	var/obj/item/W = get_active_held_item()
 	if (W)
 		W.attack_self(src)
 
@@ -1107,18 +1104,18 @@
 			icontype = module_sprites[1]
 	else
 		icontype = input("Select an icon! [triesleft ? "You have [triesleft] more chance\s." : "This is your last try."]", "Robot Icon", icontype, null) in module_sprites
-		if(notransform)				//VOREStation edit start: sprite animation
+		if(notransform)
 			to_chat(src, "Your current transformation has not finished yet!")
 			choose_icon(icon_selection_tries, module_sprites)
 			return
 		else
-			transform_with_anim()	//VOREStation edit end: sprite animation
+			transform_with_anim()
 
 	if(icontype == "Custom")
 		icon = CUSTOM_ITEM_SYNTH
 	else // This is to fix an issue where someone with a custom borg sprite chooses a non-custom sprite and turns invisible.
-		vr_sprite_check() //VOREStation Edit
-	icon_state = module_sprites[icontype]
+		vr_sprite_check()
+		icon_state = module_sprites[icontype]
 	updateicon()
 
 	if (module_sprites.len > 1 && triesleft >= 1 && client)
@@ -1158,7 +1155,7 @@
 		return 0
 
 	var/power_use = amount * CYBORG_POWER_USAGE_MULTIPLIER
-	if(cell.checked_use(CELLRATE * power_use))
+	if(cell.checked_use(DYNAMIC_W_TO_CELL_UNITS(power_use, 1)))
 		used_power_this_tick += power_use
 		return 1
 	return 0
@@ -1249,7 +1246,7 @@
 			laws = new /datum/ai_laws/syndicate_override
 			var/time = time2text(world.realtime,"hh:mm:ss")
 			lawchanges.Add("[time] <B>:</B> [user.name]([user.key]) emagged [name]([key])")
-			var/datum/gender/TU = gender_datums[user.get_visible_gender()]
+			var/datum/gender/TU = GLOB.gender_datums[user.get_visible_gender()]
 			set_zeroth_law("Only [user.real_name] and people [TU.he] designate[TU.s] as being such are operatives.")
 			. = 1
 			spawn()
@@ -1283,12 +1280,6 @@
 
 /mob/living/silicon/robot/is_sentient()
 	return braintype != BORG_BRAINTYPE_DRONE
-
-
-/mob/living/silicon/robot/drop_item()
-	if(module_active && istype(module_active,/obj/item/gripper))
-		var/obj/item/gripper/G = module_active
-		G.drop_item_nm()
 
 /mob/living/silicon/robot/get_cell()
 	return cell

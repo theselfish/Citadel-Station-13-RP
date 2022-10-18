@@ -17,7 +17,6 @@
 		return
 	var/obj/S = new deploy_path(get_turf(user))
 	user.visible_message("<span class='notice'>\The [user] deploys \the [S].</span>")
-	user.unEquip(src)
 	qdel(src)
 
 /obj/machinery/power/supply_beacon
@@ -51,7 +50,7 @@
 			return
 		anchored = !anchored
 		user.visible_message("<span class='notice'>\The [user] [anchored ? "secures" : "unsecures"] \the [src].</span>")
-		playsound(src, W.usesound, 50, 1)
+		playsound(src, W.tool_sound, 50, 1)
 		return
 	return ..()
 
@@ -75,7 +74,8 @@
 /obj/machinery/power/supply_beacon/proc/activate(mob/user)
 	if(expended)
 		return
-	if(surplus() < 500)
+	// 0.5 kw
+	if(surplus() < 0.5)
 		if(user) to_chat(user, "<span class='notice'>The connected wire doesn't have enough current.</span>")
 		return
 	set_light(3, 3, "#00CCAA")
@@ -104,7 +104,7 @@
 		return PROCESS_KILL
 	if(!use_power)
 		return
-	if(draw_power(500) < 500)
+	if(draw_power(0.5) < 0.5)
 		deactivate()
 		return
 	if(!target_drop_time)

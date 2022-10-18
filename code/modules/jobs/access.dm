@@ -1,8 +1,5 @@
 
-/obj/var/list/req_access
-/obj/var/list/req_one_access
-
-//returns 1 if this mob has sufficient access to use this object
+/// Returns 1 if this mob has sufficient access to use this object
 /obj/proc/allowed(mob/M)
 	if(IsAdminGhost(M))
 		return TRUE
@@ -29,8 +26,10 @@
 	return check_access_list(I ? I.GetAccess() : list())
 
 /obj/proc/check_access_list(var/list/L)
-	if(!L)	return 0
-	if(!istype(L, /list))	return 0
+	if(!L)
+		return 0
+	if(!istype(L, /list))
+		return 0
 	return has_access(req_access, req_one_access, L)
 
 /proc/has_access(var/list/req_access, var/list/req_one_access, var/list/accesses)
@@ -221,8 +220,8 @@
 	return botcard
 
 /mob/living/carbon/human/GetIdCard()
-	if(get_active_hand())
-		var/obj/item/I = get_active_hand()
+	if(get_active_held_item())
+		var/obj/item/I = get_active_held_item()
 		var/id = I.GetID()
 		if(id)
 			return id
@@ -234,13 +233,13 @@
 /mob/living/silicon/GetIdCard()
 	return idcard
 
-proc/FindNameFromID(var/mob/living/carbon/human/H)
+/proc/FindNameFromID(var/mob/living/carbon/human/H)
 	ASSERT(istype(H))
 	var/obj/item/card/id/C = H.GetIdCard()
 	if(C)
 		return C.registered_name
 
-proc/get_all_job_icons() //For all existing HUD icons
+/proc/get_all_job_icons() //For all existing HUD icons
 	return joblist + list("Prisoner")
 
 /obj/proc/GetJobName() //Used in secHUD icon generation

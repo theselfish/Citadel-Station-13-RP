@@ -1,5 +1,5 @@
 var/list/obj/machinery/photocopier/faxmachine/allfaxes = list()
-var/list/admin_departments = list("[GLOB.using_map.boss_name]", "Virgo-Prime Governmental Authority", "Supply") // Vorestation Edit
+var/list/admin_departments = list("[GLOB.using_map.boss_name]", "Virgo-Prime Governmental Authority", "Supply")
 var/list/alldepartments = list()
 
 var/list/adminfaxes = list()	//cache for faxes that have been sent to admins
@@ -92,16 +92,17 @@ var/list/adminfaxes = list()	//cache for faxes that have been sent to admins
 		if (scan)
 			if(ishuman(usr))
 				scan.loc = usr.loc
-				if(!usr.get_active_hand())
-					usr.put_in_hands(scan)
+				if(!usr.get_active_held_item())
+					usr.put_in_hands_or_drop(scan)
 				scan = null
 			else
 				scan.loc = src.loc
 				scan = null
 		else
-			var/obj/item/I = usr.get_active_hand()
-			if (istype(I, /obj/item/card/id) && usr.unEquip(I))
-				I.loc = src
+			var/obj/item/I = usr.get_active_held_item()
+			if (istype(I, /obj/item/card/id))
+				if(!usr.attempt_insert_item_for_installation(I, src))
+					return
 				scan = I
 		authenticated = 0
 
@@ -187,7 +188,7 @@ var/list/adminfaxes = list()	//cache for faxes that have been sent to admins
 	//message badmins that a fax has arrived
 	if (destination == GLOB.using_map.boss_name)
 		message_admins(sender, "[uppertext(GLOB.using_map.boss_short)] FAX", rcvdcopy, "CentComFaxReply", "#006100")
-	else if (destination == "Virgo-Prime Governmental Authority") // Vorestation Edit
+	else if (destination == "Virgo-Prime Governmental Authority")
 		message_admins(sender, "VIRGO GOVERNMENT FAX", rcvdcopy, "CentComFaxReply", "#1F66A0")
 	else if (destination == "Supply")
 		message_admins(sender, "[uppertext(GLOB.using_map.boss_short)] SUPPLY FAX", rcvdcopy, "CentComFaxReply", "#5F4519")
@@ -210,7 +211,5 @@ var/list/adminfaxes = list()	//cache for faxes that have been sent to admins
 			to_chat(C, msg)
 			SEND_SOUND(C, sound('sound/machines/printer.ogg'))
 
-	// VoreStation Edit Start
 	var/faxid = export_fax(sent)
 	message_chat_admins(sender, faxname, sent, faxid, font_colour)
-	// VoreStation Edit End

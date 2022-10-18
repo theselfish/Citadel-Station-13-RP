@@ -10,7 +10,6 @@
 #define LIGHT_BURNED 3
 ///K - used value for a 60W bulb
 #define LIGHT_BULB_TEMPERATURE 400
-///VOREStation Edit: why the fuck are lights eating so much power, 2W per thing
 ///5W per luminosity * range
 #define LIGHTING_POWER_FACTOR 2
 ///How much power emergency lights will consume per tick
@@ -93,26 +92,23 @@ var/global/list/light_type_cache = list()
 		if(!cell_connectors)
 			to_chat(user, "<span class='warning'>This [name] can't support a power cell!</span>")
 			return
-		if(!user.unEquip(W))
-			to_chat(user, "<span class='warning'>[W] is stuck to your hand!</span>")
-			return
 		if(cell)
 			to_chat(user, "<span class='warning'>There is a power cell already installed!</span>")
-		else if(user.drop_from_inventory(W))
-			user.visible_message("<span class='notice'>[user] hooks up [W] to [src].</span>", \
-			"<span class='notice'>You add [W] to [src].</span>")
-			playsound(src, 'sound/machines/click.ogg', 50, TRUE)
-			W.forceMove(src)
-			cell = W
-			add_fingerprint(user)
+		if(!user.attempt_insert_item_for_installation(W, src))
+			return
+		user.visible_message("<span class='notice'>[user] hooks up [W] to [src].</span>", \
+		"<span class='notice'>You add [W] to [src].</span>")
+		playsound(src, 'sound/machines/click.ogg', 50, TRUE)
+		cell = W
+		add_fingerprint(user)
 		return
 
 
 	if (W.is_wrench())
 		if (src.stage == 1)
-			playsound(src, W.usesound, 75, 1)
+			playsound(src, W.tool_sound, 75, 1)
 			to_chat(usr, "You begin deconstructing [src].")
-			if (!do_after(usr, 30 * W.toolspeed))
+			if (!do_after(usr, 30 * W.tool_speed))
 				return
 			new /obj/item/stack/material/steel( get_turf(src.loc), sheets_refunded )
 			user.visible_message("[user.name] deconstructs [src].", \
@@ -134,7 +130,7 @@ var/global/list/light_type_cache = list()
 		new /obj/item/stack/cable_coil(get_turf(src.loc), 1, null, "red")
 		user.visible_message("[user.name] removes the wiring from [src].", \
 			"You remove the wiring from [src].", "You hear a noise.")
-		playsound(src.loc, W.usesound, 50, 1)
+		playsound(src.loc, W.tool_sound, 50, 1)
 		return
 
 	if(istype(W, /obj/item/stack/cable_coil))
@@ -153,7 +149,7 @@ var/global/list/light_type_cache = list()
 			src.update_icon()
 			user.visible_message("[user.name] closes [src]'s casing.", \
 				"You close [src]'s casing.", "You hear a noise.")
-			playsound(src, W.usesound, 75, 1)
+			playsound(src, W.tool_sound, 75, 1)
 
 			var/obj/machinery/light/newlight = new fixture_type(src.loc, src)
 			newlight.setDir(src.dir)
@@ -206,11 +202,33 @@ var/global/list/light_type_cache = list()
 		if(3)
 			icon_state = "flamp-empty"
 
+//Fairy Light Fixture
+/obj/machinery/light_construct/fairy
+	name = "fairy light fixture frame"
+	desc = "A string of cable with lots of sockets - under construction."
+	icon = 'icons/obj/lighting.dmi'
+	icon_state = "fairy-construct-stage1"
+	anchored = 0
+	plane = OBJ_PLANE
+	layer = OBJ_LAYER
+	stage = 1
+	fixture_type = /obj/machinery/light/fairy
+	sheets_refunded = 1
+
+/obj/machinery/light_construct/fairy/update_icon()
+	switch(stage)
+		if(1)
+			icon_state = "fairy-construct-stage1"
+		if(2)
+			icon_state = "fairy-construct-stage2"
+		if(3)
+			icon_state = "fairy-empty"
+
 // the standard tube light fixture
 /obj/machinery/light
 	name = "light fixture"
-	icon = 'icons/obj/lighting_vr.dmi' //VOREStation Edit
-	var/base_state = "tube"		// base description and icon_state
+	icon = 'icons/obj/lighting_vr.dmi'
+	var/base_state = "tube" // base description and icon_state
 	icon_state = "tube1"
 	desc = "A lighting fixture."
 	anchored = 1
@@ -268,7 +286,7 @@ var/global/list/light_type_cache = list()
 	desc = "A small lighting fixture."
 	light_type = /obj/item/light/bulb
 	construct_type = /obj/machinery/light_construct/small
-	shows_alerts = FALSE	//VOREStation Edit
+	shows_alerts = FALSE
 
 /obj/machinery/light/small/flicker
 	auto_flicker = TRUE
@@ -279,8 +297,18 @@ var/global/list/light_type_cache = list()
 /obj/machinery/light/small/poi
 	start_with_cell = FALSE
 
+/obj/machinery/light/fairy
+	name = "fairy lights"
+	icon = 'icons/obj/lighting.dmi'
+	icon_state = "fairy1"
+	base_state = "fairy"
+	desc = "Soft white lights that flicker and dance to and fro."
+	light_type = /obj/item/light/bulb/fairy
+	construct_type = /obj/machinery/light_construct/fairy
+	shows_alerts = FALSE
+
 /obj/machinery/light/flamp
-	icon = 'icons/obj/lighting.dmi' //VOREStation Edit
+	icon = 'icons/obj/lighting.dmi'
 	icon_state = "flamp1"
 	base_state = "flamp"
 	plane = OBJ_PLANE
@@ -288,7 +316,7 @@ var/global/list/light_type_cache = list()
 	desc = "A floor lamp."
 	light_type = /obj/item/light/bulb
 	construct_type = /obj/machinery/light_construct/flamp
-	shows_alerts = FALSE	//VOREStation Edit
+	shows_alerts = FALSE
 	var/lamp_shade = 1
 
 /obj/machinery/light/flamp/Initialize(mapload, obj/machinery/light_construct/construct)
@@ -313,17 +341,15 @@ var/global/list/light_type_cache = list()
 /obj/machinery/light/spot
 	name = "spotlight"
 	light_type = /obj/item/light/tube/large
-	shows_alerts = FALSE	//VOREStation Edit
+	shows_alerts = FALSE
 
 /obj/machinery/light/spot/flicker
 	auto_flicker = TRUE
 
-//VOREStation Add - Shadeless!
 /obj/machinery/light/flamp/noshade/Initialize(mapload, obj/machinery/light_construct/construct)
 	. = ..()
 	lamp_shade = 0
 	update(0)
-//VOREStation Add End
 
 // create a new lighting fixture
 /obj/machinery/light/Initialize(mapload, obj/machinery/light_construct/construct)
@@ -356,14 +382,12 @@ var/global/list/light_type_cache = list()
 
 /obj/machinery/light/update_icon()
 
-	switch(status)		// set icon_states
+	switch(status) // set icon_states
 		if(LIGHT_OK)
-			//VOREStation Edit Start
 			if(shows_alerts && current_alert && on)
 				icon_state = "[base_state]-alert-[current_alert]"
 			else
 				icon_state = "[base_state][on]"
-			//VOREStation Edit End
 		if(LIGHT_EMPTY)
 			icon_state = "[base_state]-empty"
 			on = 0
@@ -394,7 +418,7 @@ var/global/list/light_type_cache = list()
 	else
 		base_state = "flamp"
 		..()
-//VOREStation Edit Start
+
 /obj/machinery/light/proc/set_alert_atmos()
 	if(shows_alerts)
 		current_alert = "atmos"
@@ -415,17 +439,15 @@ var/global/list/light_type_cache = list()
 		brightness_color = initial(brightness_color) || "" // Workaround for BYOND stupidity. Can't set it to null or it won't clear.
 		if(on)
 			update()
-//VOREstation Edit End
+
 // update lighting
 /obj/machinery/light/proc/update(var/trigger = 1)
 	update_icon()
-	//VOREStation Edit Start
 	if(!on)
 		needsound = TRUE // Play sound next time we turn on
 	else if(needsound)
 		playsound(src.loc, 'sound/effects/lighton.ogg', 65, 1)
 		needsound = FALSE // Don't play sound again until we've been turned off
-	//VOREStation Edit End
 
 	if(on)
 		var/correct_range = nightshift_enabled ? brightness_range_ns : brightness_range
@@ -596,7 +618,7 @@ var/global/list/light_type_cache = list()
 					continue
 				M.show_message("[user.name] smashed the light!", 3, "You hear a tinkle of breaking glass", 2)
 			if(on && !(W.flags & NOCONDUCT))
-				//if(!user.mutations & COLD_RESISTANCE)
+				//if(!user.mutations & MUTATION_COLD_RESIST)
 				if (prob(12))
 					electrocute_mob(user, get_area(src), src, 0.3)
 			broken()
@@ -607,7 +629,7 @@ var/global/list/light_type_cache = list()
 	// attempt to stick weapon into light socket
 	else if(status == LIGHT_EMPTY)
 		if(W.is_screwdriver()) //If it's a screwdriver open it.
-			playsound(src, W.usesound, 75, 1)
+			playsound(src, W.tool_sound, 75, 1)
 			user.visible_message("[user.name] opens [src]'s casing.", \
 				"You open [src]'s casing.", "You hear a noise.")
 			new construct_type(src.loc, null, null, null, src)
@@ -619,14 +641,14 @@ var/global/list/light_type_cache = list()
 			var/datum/effect_system/spark_spread/s = new /datum/effect_system/spark_spread
 			s.set_up(3, 1, src)
 			s.start()
-			//if(!user.mutations & COLD_RESISTANCE)
+			//if(!user.mutations & MUTATION_COLD_RESIST)
 			if (prob(75))
 				electrocute_mob(user, get_area(src), src, rand(0.7,1.0))
 
 /obj/machinery/light/flamp/attackby(obj/item/W, mob/user)
 	if(W.is_wrench())
 		anchored = !anchored
-		playsound(src, W.usesound, 50, 1)
+		playsound(src, W.tool_sound, 50, 1)
 		to_chat(user, "<span class='notice'>You [anchored ? "wrench" : "unwrench"] \the [src].</span>")
 
 	if(!lamp_shade)
@@ -638,7 +660,7 @@ var/global/list/light_type_cache = list()
 
 	else
 		if(W.is_screwdriver())
-			playsound(src, W.usesound, 75, 1)
+			playsound(src, W.tool_sound, 75, 1)
 			user.visible_message("[user.name] removes [src]'s lamp shade.", \
 				"You remove [src]'s lamp shade.", "You hear a noise.")
 			lamp_shade = 0
@@ -753,9 +775,9 @@ var/global/list/light_type_cache = list()
 		else
 			prot = 1
 
-		if(prot > 0 || (COLD_RESISTANCE in user.mutations))
+		if(prot > 0 || (MUTATION_COLD_RESIST in user.mutations))
 			to_chat(user, "You remove the [get_fitting_name()]")
-		else if(TK in user.mutations)
+		else if(MUTATION_TELEKINESIS in user.mutations)
 			to_chat(user, "You telekinetically remove the [get_fitting_name()].")
 		else
 			to_chat(user, "You try to remove the [get_fitting_name()], but it's too hot and you don't want to burn your hand.")
@@ -883,7 +905,7 @@ var/global/list/light_type_cache = list()
 /obj/item/light
 	icon = 'icons/obj/lighting.dmi'
 	force = 2
-	throwforce = 5
+	throw_force = 5
 	w_class = ITEMSIZE_TINY
 	var/status = 0		// LIGHT_OK, LIGHT_BURNED or LIGHT_BROKEN
 	var/base_state
@@ -909,8 +931,7 @@ var/global/list/light_type_cache = list()
 	base_state = "ltube"
 	item_state = "c_tube"
 	matter = list(MAT_GLASS = 100)
-	brightness_range = 12	// luminosity when on, also used in power calculation //VOREStation Edit
-	brightness_power = 1
+	brightness_range = 12	// luminosity when on, also used in power calculation	brightness_power = 1
 
 	nightshift_range = 7
 	nightshift_power = 0.5
@@ -1053,6 +1074,15 @@ var/global/list/light_type_cache = list()
 	base_state = "fbulb"
 	item_state = "egg4"
 	matter = list(MAT_GLASS = 100)
+
+//Fairylights
+/obj/item/light/bulb/fairy
+	name = "fairy light bulb"
+	desc = "A tiny replacement light bulb."
+	icon_state = "fbulb"
+	base_state = "fbulb"
+	matter = list(MAT_GLASS = 10)
+	brightness_range = 5
 
 // update the icon state and description of the light
 /obj/item/light/update_icon()

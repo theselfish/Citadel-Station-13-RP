@@ -63,10 +63,12 @@ var/global/list/ear_styles_list = list()
 var/global/list/tail_styles_list = list()
 /// Stores /datum/sprite_accessory/wing indexed by type
 var/global/list/wing_styles_list = list()
+/// Stores /datum/sprite_accessory/ears again indexed by type
+var/global/list/horn_styles_list = list()
 //!Underwear
 var/datum/category_collection/underwear/global_underwear = new()
-//!Backpacks
-var/global/list/backbaglist = list("Nothing", "Backpack", "Satchel", "Satchel Alt", "Messenger Bag","Duffle Bag", "RIG")
+//!Backpacks - The load order here is important to maintain. Don't go swapping these around.
+var/global/list/backbaglist = list("Nothing", "Backpack", "Satchel", "Satchel Alt", "Messenger Bag", "RIG", "Duffle Bag")
 var/global/list/pdachoicelist = list("Default", "Slim", "Old", "Rugged","Minimalist", "Holographic", "Wrist-Bound")
 var/global/list/exclude_jobs = list(/datum/job/station/ai,/datum/job/station/cyborg)
 
@@ -210,7 +212,10 @@ GLOBAL_LIST_EMPTY(mannequins)
 	//Languages and species.
 	paths = subtypesof(/datum/language)
 	for(var/T in paths)
-		var/datum/language/L = new T
+		var/datum/language/L = T
+		if(initial(L.abstract_type) == T)
+			continue
+		L = new T
 		GLOB.all_languages[L.name] = L
 
 	for (var/language_name in GLOB.all_languages)
@@ -254,8 +259,11 @@ GLOBAL_LIST_EMPTY(mannequins)
 		var/datum/sprite_accessory/wing/instance = new path()
 		wing_styles_list[path] = instance
 
+	//Custom Ears2 -- Repathing was deemed worse than this I'm so sorry
+	horn_styles_list = LAZYCOPY(ear_styles_list)
+
 	// Custom species traits
-	paths = typesof(/datum/trait) - /datum/trait
+	paths = typesof(/datum/trait) - /datum/trait - /datum/trait/negative - /datum/trait/neutral - /datum/trait/positive
 	for(var/path in paths)
 		var/datum/trait/instance = new path()
 		if(!instance.name)
@@ -303,11 +311,13 @@ var/global/list/hexNums = list("0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
 //* Custom Species Lists *//
 GLOBAL_LIST_EMPTY(custom_species_bases)
 
-//Traits
+//! ## Traits
 /// Negative custom species traits, indexed by path.
 var/global/list/negative_traits = list()
 /// Neutral custom species traits, indexed by path.
 var/global/list/neutral_traits = list()
+/// Neutral traits available to all species, indexed by path.
+var/global/list/everyone_traits = list()
 /// Positive custom species traits, indexed by path.
 var/global/list/positive_traits = list()
 /// Just path = cost list, saves time in char setup.
@@ -750,6 +760,8 @@ var/global/list/remainless_species = list(SPECIES_PROMETHEAN,
 				negative_traits[path] = instance
 			if(0)
 				neutral_traits[path] = instance
+				if(!(instance.custom_only))
+					everyone_traits[path] = instance
 			if(0.1 to INFINITY)
 				positive_traits[path] = instance
 

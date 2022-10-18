@@ -1,6 +1,3 @@
-/// world.icon_size
-#define PIXELS 32
-
 // These get to go at the top, because they're special
 //You can use these defines to get the typepath of the currently running proc/verb (yes procs + verbs are objects)
 /* eg:
@@ -35,6 +32,7 @@ Will print: "/mob/living/carbon/human/death" (you can optionally embed it in a s
 
 #define SEE_INVISIBLE_MINIMUM		5
 #define INVISIBILITY_MAXIMUM		100
+#define INVISIBILITY_ABSTRACT		101
 
 /// Pseudo-Invis, like Ninja, Ling, Etc.
 /// Below this, can't be examined, may as well be invisible to the game
@@ -88,7 +86,6 @@ Will print: "/mob/living/carbon/human/death" (you can optionally embed it in a s
 #define SHELTER_DEPLOY_BAD_TURFS		"bad turfs"
 #define SHELTER_DEPLOY_BAD_AREA			"bad area"
 #define SHELTER_DEPLOY_ANCHORED_OBJECTS	"anchored objects"
-
 
 // Setting this much higher than 1024 could allow spammers to DOS the server easily.
 /// I'm not sure about "easily". It can be a lot longer.
@@ -284,10 +281,10 @@ var/list/economy_station_departments = list(
 	DEPARTMENT_PLANET,
 	DEPARTMENT_RESEARCH,
 	DEPARTMENT_SECURITY
-) //VOREStation Edit
+)
 
 
-// vorstation off-duty time
+// Off-duty time
 #define PTO_CARGO			"Cargo"
 #define PTO_CIVILIAN		"Civilian"
 #define PTO_COMMAND			"Command"
@@ -314,8 +311,6 @@ var/list/economy_station_departments = list(
 ///The number of deciseconds in a day
 #define MIDNIGHT_ROLLOVER		864000
 
-/// Needed for the R-UST port
-#define WORLD_ICON_SIZE 32
 ///Needed for the R-UST port
 #define PIXEL_MULTIPLIER WORLD_ICON_SIZE/32
 /// Maximum effective value of client.view (According to DM references)
@@ -418,10 +413,10 @@ GLOBAL_LIST_EMPTY(##LIST_NAME);\
 
 // Radiation 'levels'. Used for the geiger counter, for visuals and sound. They are in different files so this goes here.
 /// Around the level at which radiation starts to become harmful
-#define RAD_LEVEL_LOW		0.5
-#define RAD_LEVEL_MODERATE	5
-#define RAD_LEVEL_HIGH		25
-#define RAD_LEVEL_VERY_HIGH	75
+#define RAD_LEVEL_LOW        0.5
+#define RAD_LEVEL_MODERATE   5
+#define RAD_LEVEL_HIGH      25
+#define RAD_LEVEL_VERY_HIGH 75
 
 /// Radiation will not affect a tile when below this value.
 #define RADIATION_THRESHOLD_CUTOFF	0.1
@@ -431,14 +426,14 @@ GLOBAL_LIST_EMPTY(##LIST_NAME);\
 #define PR_ANNOUNCEMENTS_PER_ROUND	5
 
 //https://secure.byond.com/docs/ref/info.html#/atom/var/mouse_opacity
-#define MOUSE_OPACITY_TRANSPARENT	0
-#define MOUSE_OPACITY_ICON			1
-#define MOUSE_OPACITY_OPAQUE		2
+#define MOUSE_OPACITY_TRANSPARENT 0
+#define MOUSE_OPACITY_ICON        1
+#define MOUSE_OPACITY_OPAQUE      2
 
 //world/proc/shelleo
 #define SHELLEO_ERRORLEVEL 1
-#define SHELLEO_STDOUT 2
-#define SHELLEO_STDERR 3
+#define SHELLEO_STDOUT     2
+#define SHELLEO_STDERR     3
 
 /// Embed chance unset for embed_chance var on /obj/item.
 #define EMBED_CHANCE_UNSET	-1337
@@ -561,5 +556,12 @@ GLOBAL_LIST_EMPTY(##LIST_NAME);\
 		"pink"		= "lightgrey"		\
 	)
 
-/// The amount of cell charge to use per 1 nutrition, given that synthetics are full at 450 nutrition
-#define SYNTHETIC_NUTRITION_CHARGE_RATE 20
+//! Window construction stages
+/// window construction isn't started at all
+#define WINDOW_STATE_UNSECURED 0
+/// frame is screwed to floor
+#define WINDOW_STATE_SCREWED_TO_FLOOR 1
+/// window is crowbarred in
+#define WINDOW_STATE_CROWBRARED_IN 2
+/// window is secured to frame
+#define WINDOW_STATE_SECURED_TO_FRAME 3

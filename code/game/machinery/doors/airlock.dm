@@ -1,4 +1,4 @@
-//VOREStation Edit - Redone a lot of airlock things:
+// Redone a lot of airlock things:
 /*
 - Specific department maintenance doors
 - Named doors properly according to type
@@ -153,7 +153,7 @@
 /obj/machinery/door/airlock/maintenance
 	name = "Maintenance Access"
 	icon = 'icons/obj/doors/Doormaint.dmi'
-	//req_one_access = list(access_maint_tunnels) //VOREStation Edit - Maintenance is open access
+	//req_one_access = list(access_maint_tunnels) // Maintenance is open access
 	assembly_type = /obj/structure/door_assembly/door_assembly_mai
 	open_sound_powered = 'sound/machines/door/door2o.ogg'
 	close_sound_powered = 'sound/machines/door/door2c.ogg'
@@ -587,7 +587,7 @@
 /obj/machinery/door/airlock/alien/public // Entry to UFO.
 	req_one_access = list()
 	normalspeed = FALSE // So it closes faster and hopefully keeps the warm air inside.
-	hackProof = TRUE //VOREStation Edit - No borgos
+	hackProof = TRUE // No borgs
 
 //"Red" Armory Door
 /obj/machinery/door/airlock/security/armory
@@ -1088,7 +1088,7 @@ About the new airlock wires panel:
 				src.welded = 1
 			else
 				src.welded = null
-			playsound(src.loc, C.usesound, 75, 1)
+			playsound(src.loc, C.tool_sound, 75, 1)
 			src.update_icon()
 			return
 		else
@@ -1099,10 +1099,10 @@ About the new airlock wires panel:
 				to_chat(usr, "<span class='warning'>The panel is broken and cannot be closed.</span>")
 			else
 				src.p_open = 0
-				playsound(src, C.usesound, 50, 1)
+				playsound(src, C.tool_sound, 50, 1)
 		else
 			src.p_open = 1
-			playsound(src, C.usesound, 50, 1)
+			playsound(src, C.tool_sound, 50, 1)
 		src.update_icon()
 	else if(C.is_wirecutter())
 		return src.attack_hand(user)
@@ -1115,9 +1115,9 @@ About the new airlock wires panel:
 		cable.plugin(src, user)
 	else if(!repairing && C.is_crowbar())
 		if(can_remove_electronics())
-			playsound(src, C.usesound, 75, 1)
+			playsound(src, C.tool_sound, 75, 1)
 			user.visible_message("[user] removes the electronics from the airlock assembly.", "You start to remove electronics from the airlock assembly.")
-			if(do_after(user,40 * C.toolspeed))
+			if(do_after(user,40 * C.tool_speed))
 				to_chat(user, "<span class='notice'>You removed the airlock electronics!</span>")
 
 				var/obj/structure/door_assembly/da = new assembly_type(src.loc)
@@ -1349,6 +1349,10 @@ About the new airlock wires panel:
 	if(locked)
 		return 0
 	return ..(M)
+
+// Airlock is passable if it is open (!density), bot has access, and is not bolted shut or powered off)
+/obj/machinery/door/airlock/CanAStarPass(obj/item/card/id/ID, to_dir, atom/movable/caller)
+	return ..() || (check_access(ID) && !locked && inoperable())
 
 /obj/machinery/door/airlock/Initialize(mapload, obj/structure/door_assembly/assembly)
 	//if assembly is given, create the new door from the assembly

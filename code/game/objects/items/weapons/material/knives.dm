@@ -17,7 +17,7 @@
 		edge = 1
 		sharp = 1
 		..() //Updates force.
-		throwforce = max(3,force-3)
+		throw_force = max(3,force-3)
 		hitsound = 'sound/weapons/bladeslice.ogg'
 		icon_state += "_open"
 		w_class = ITEMSIZE_NORMAL
@@ -81,7 +81,7 @@
 	attack_verb = list("slashed", "stabbed", "sliced", "torn", "ripped", "diced", "cut")
 
 /obj/item/material/knife/suicide_act(mob/user)
-	var/datum/gender/TU = gender_datums[user.get_visible_gender()]
+	var/datum/gender/TU = GLOB.gender_datums[user.get_visible_gender()]
 	user.visible_message(pick("<span class='danger'>\The [user] is slitting [TU.his] wrists with \the [src]! It looks like [TU.hes] trying to commit suicide.</span>", \
 	                      "<span class='danger'>\The [user] is slitting [TU.his] throat with \the [src]! It looks like [TU.hes] trying to commit suicide.</span>", \
 	                      "<span class='danger'>\The [user] is slitting [TU.his] stomach open with \the [src]! It looks like [TU.hes] trying to commit seppuku.</span>"))
@@ -162,8 +162,7 @@
 	attack_verb = list("slashed", "chopped", "gouged", "ripped", "cut")
 	can_cleave = TRUE //Now hatchets inherit from the machete, and thus knives. Tables turned.
 	slot_flags = SLOT_BELT | SLOT_HOLSTER
-	default_material = "plasteel" //VOREStation Edit
-
+	default_material = "plasteel"
 /obj/item/material/knife/machete/armblade
 	name = "arm-mounted blade"
 	desc = "A long, machete-like blade, mounted to your arm. The size and location of it lends itself to parrying blows in melee."
@@ -183,10 +182,9 @@
 
 /obj/item/material/knife/machete/armblade/rig
 	default_material = MAT_STEEL
-	canremove = FALSE
 	var/obj/item/rig_module/armblade/storing_module
 
-/obj/item/material/knife/machete/armblade/rig/dropped(mob/user)
+/obj/item/material/knife/machete/armblade/rig/dropped(mob/user, flags, atom/newLoc)
 	. = ..()
 	if(storing_module)
 		src.forceMove(storing_module)
@@ -207,15 +205,14 @@
 	icon_state = "survivalknife"
 	item_state = "knife"
 	applies_material_colour = FALSE
-	default_material = "plasteel" //VOREStation Edit
-	toolspeed = 2 // Use a real axe if you want to chop logs.
+	default_material = "plasteel"
+	tool_speed = 2 // Use a real axe if you want to chop logs.
 
 /obj/item/material/knife/tacknife/survival/bone
 	name = "primitive survival knife"
 	desc = "A hunting grade survival knife with a sleek leather grip."
 	applies_material_colour =TRUE
-	default_material = "bone" //VOREStation Edit
-
+	default_material = "bone"
 /obj/item/material/knife/machete/deluxe
 	name = "deluxe machete"
 	desc = "A fine example of a machete, with a polished blade, wooden handle and a leather cord loop."
@@ -231,8 +228,8 @@
 	icon_state = "dataknife"
 	item_state = "knife"
 	applies_material_colour = FALSE
-	default_material = "plasteel" //VOREStation Edit
-	toolspeed = 2 // Use a real axe if you want to chop logs.
+	default_material = "plasteel"
+	tool_speed = 2 // Use a real axe if you want to chop logs.
 	var/gps_tag = "DAT&#%F0"
 	var/emped = FALSE
 	var/tracking = TRUE		// Will not show other signals or emit its own signal if false.

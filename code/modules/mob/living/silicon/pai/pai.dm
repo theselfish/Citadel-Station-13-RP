@@ -47,9 +47,9 @@
 		"Fox" = "pai-fox",
 		"Parrot" = "pai-parrot",
 		"Rabbit" = "pai-rabbit",
-		"Bear" = "pai-bear",  //VOREStation Edit
-		"Fennec" = "pai-fen",  // VOREStation Edit - Rykka
-		"Fennec" = "pai-typezero"  //VOREStation Edit
+		"Bear" = "pai-bear",
+		"Fennec" = "pai-fen",
+		"Fennec" = "pai-typezero",
 		)
 
 	var/global/list/possible_say_verbs = list(
@@ -58,10 +58,11 @@
 		"Beep" = list("beeps","beeps loudly","boops"),
 		"Chirp" = list("chirps","chirrups","cheeps"),
 		"Feline" = list("purrs","yowls","meows"),
-		"Canine" = list("yaps","barks","woofs")
+		"Canine" = list("yaps","barks","woofs"),
 		)
 
-	var/obj/item/pai_cable/cable		// The cable we produce and use when door or camera jacking
+	/// The cable we produce and use when door or camera jacking.
+	var/obj/item/pai_cable/cable
 
 	var/master				// Name of the one who commands us
 	var/master_dna			// DNA string for owner verification
@@ -132,8 +133,8 @@
 
 /mob/living/silicon/pai/Login()
 	..()
-	// Vorestation Edit: Meta Info for pAI
-	if (client.prefs)
+	// Meta Info for pAI
+	if(client.prefs)
 		ooc_notes = client.prefs.metadata
 
 
@@ -285,10 +286,10 @@
 		return 0
 	else if(istype(card.loc,/mob))
 		var/mob/holder = card.loc
-		var/datum/belly/inside_belly = check_belly(card) //VOREStation edit.
-		if(inside_belly) //VOREStation edit.
-			to_chat(src, "<span class='notice'>There is no room to unfold in here. You're good and stuck.</span>") //VOREStation edit.
-			return 0 //VOREStation edit.
+		var/datum/belly/inside_belly = check_belly(card)
+		if(inside_belly)
+			to_chat(src, "<span class='notice'>There is no room to unfold in here. You're good and stuck.</span>")
+			return 0
 		if(ishuman(holder))
 			var/mob/living/carbon/human/H = holder
 			for(var/obj/item/organ/external/affecting in H.organs)
@@ -297,7 +298,7 @@
 					affecting.implants -= card
 					H.visible_message("<span class='danger'>\The [src] explodes out of \the [H]'s [affecting.name] in shower of gore!</span>")
 					break
-		holder.drop_from_inventory(card)
+		holder.drop_item_to_ground(card, INV_OP_FORCE)
 	else if(istype(card.loc,/obj/item/pda))
 		var/obj/item/pda/holder = card.loc
 		holder.pai = null
@@ -312,9 +313,9 @@
 	if(istype(T))
 		T.visible_message("<b>[src]</b> folds outwards, expanding into a mobile form.")
 
-	verbs += /mob/living/silicon/pai/proc/pai_nom //VOREStation edit
-	verbs += /mob/living/proc/set_size //VOREStation edit
-	verbs += /mob/living/proc/shred_limb //VORREStation edit
+	verbs += /mob/living/silicon/pai/proc/pai_nom
+	verbs += /mob/living/proc/set_size
+	verbs += /mob/living/proc/shred_limb
 
 /mob/living/silicon/pai/verb/fold_up()
 	set category = "pAI Commands"
@@ -373,8 +374,8 @@
 	else
 		resting = !resting
 		icon_state = resting ? "[chassis]_rest" : "[chassis]"
-		update_icon() //VOREStation edit
-		to_chat(src, "<span class='notice'>You are now [resting ? "resting" : "getting up"]</span>")
+		update_icon()
+		to_chat(src, SPAN_NOTICE("You are now [resting ? "resting" : "getting up"]"))
 
 	canmove = !resting
 
@@ -405,7 +406,7 @@
 	if(src.loc == card)
 		return
 
-	release_vore_contents() //VOREStation Add
+	release_vore_contents()
 
 	var/turf/T = get_turf(src)
 	if(istype(T))
@@ -419,20 +420,17 @@
 	// If we are being held, handle removing our holder from their inv.
 	var/obj/item/holder/H = loc
 	if(istype(H))
-		var/mob/living/M = H.loc
-		if(istype(M))
-			M.drop_from_inventory(H)
-		H.loc = get_turf(src)
-		src.loc = get_turf(H)
+		H.forceMove(get_turf(src))
+		forceMove(get_turf(src))
 
 	// Move us into the card and move the card to the ground.
 	card.forceMove(loc)
 	forceMove(card)
 	update_perspective()
-	canmove = 1
-	resting = 0
+	canmove = TRUE
+	resting = FALSE
 	icon_state = "[chassis]"
-	verbs -= /mob/living/silicon/pai/proc/pai_nom //VOREStation edit. Let's remove their nom verb
+	verbs -= /mob/living/silicon/pai/proc/pai_nom
 
 // No binary for pAIs.
 /mob/living/silicon/pai/binarycheck()

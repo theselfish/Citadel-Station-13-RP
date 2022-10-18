@@ -2,13 +2,13 @@
 var/list/z_levels = list()// Each bit re... haha just kidding this is a list of bools now
 
 // If the height is more than 1, we mark all contained levels as connected.
-/atom/movable/landmark/map_data/New()
+/obj/landmark/map_data/New()
 	for(var/i = (z - height + 1) to (z-1))
 		if (z_levels.len <i)
 			z_levels.len = i
 		z_levels[i] = TRUE
 
-/atom/movable/landmark/map_data/Initialize(mapload)
+/obj/landmark/map_data/Initialize(mapload)
 	..()
 	return INITIALIZE_HINT_QDEL
 
@@ -49,7 +49,7 @@ var/list/z_levels = list()// Each bit re... haha just kidding this is a list of 
 	for(var/level = z, HasAbove(level), level++)
 		. |= level+1
 
-proc/AreConnectedZLevels(var/zA, var/zB)
+/proc/AreConnectedZLevels(var/zA, var/zB)
 	return zA == zB || (zB in GetConnectedZlevels(zA))
 
 /proc/get_zstep(ref, dir)

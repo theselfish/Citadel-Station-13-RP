@@ -61,12 +61,11 @@
 			log_world("[src.name] in [get_area(src)]has errored. [src.network?"Empty network list":"Null network list"]")
 		ASSERT(src.network)
 		ASSERT(src.network.len > 0)
-	// VOREStation Edit Start - Make mapping with cameras easier
+	// Make mapping with cameras easier
 	if(!c_tag)
 		var/area/A = get_area(src)
 		c_tag = "[A ? A.name : "Unknown"] #[rand(111,999)]"
 	return ..()
-	// VOREStation Edit End
 
 /obj/machinery/camera/Destroy()
 	deactivate(null, 0) //kick anyone viewing out
@@ -117,13 +116,13 @@
 		return
 	destroy()
 
-/obj/machinery/camera/hitby(AM as mob|obj)
-	..()
+/obj/machinery/camera/throw_impacted(atom/movable/AM, datum/thrownthing/TT)
+	. = ..()
 	if (istype(AM, /obj))
 		var/obj/O = AM
-		if (O.throwforce >= src.toughness)
+		if (O.throw_force >= src.toughness)
 			visible_message("<span class='warning'><B>[src] was hit by [O].</B></span>")
-		take_damage(O.throwforce)
+		take_damage(O.throw_force)
 
 /obj/machinery/camera/proc/setViewRange(var/num = 7)
 	src.view_range = num
@@ -163,7 +162,7 @@
 		panel_open = !panel_open
 		user.visible_message("<span class='warning'>[user] screws the camera's panel [panel_open ? "open" : "closed"]!</span>",
 		"<span class='notice'>You screw the camera's panel [panel_open ? "open" : "closed"].</span>")
-		playsound(src.loc, W.usesound, 50, 1)
+		playsound(src.loc, W.tool_sound, 50, 1)
 
 	else if((W.is_wirecutter() || istype(W, /obj/item/multitool)) && panel_open)
 		interact(user)
@@ -364,10 +363,10 @@
 
 	// Do after stuff here
 	to_chat(user, "<span class='notice'>You start to weld [src]..</span>")
-	playsound(src.loc, WT.usesound, 50, 1)
+	playsound(src.loc, WT.tool_sound, 50, 1)
 	WT.eyecheck(user)
 	busy = 1
-	if(do_after(user, 100 * WT.toolspeed))
+	if(do_after(user, 100 * WT.tool_speed))
 		busy = 0
 		if(!WT.isOn())
 			return 0

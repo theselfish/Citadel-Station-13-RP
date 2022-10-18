@@ -30,7 +30,10 @@
 	if(should_have_organ("brain"))
 		var/obj/item/organ/internal/brain/sponge = internal_organs_by_name["brain"]
 		if(sponge)
-			sponge.take_damage(amount)
+			if(amount > 0)
+				sponge.take_damage(amount)
+			else
+				sponge.heal_damage_i(-amount, can_revive = TRUE)
 			brainloss = sponge.damage
 		else
 			brainloss = 200
@@ -44,7 +47,8 @@
 	if(should_have_organ("brain"))
 		var/obj/item/organ/internal/brain/sponge = internal_organs_by_name["brain"]
 		if(sponge)
-			sponge.damage = min(max(amount, 0),(getMaxHealth()*2))
+			sponge.damage = clamp(amount, 0, sponge.max_damage)
+			sponge.update_health()
 			brainloss = sponge.damage
 		else
 			brainloss = 200
@@ -58,7 +62,7 @@
 	if(should_have_organ("brain"))
 		var/obj/item/organ/internal/brain/sponge = internal_organs_by_name["brain"]
 		if(sponge)
-			brainloss = min(sponge.damage,getMaxHealth()*2)
+			brainloss = sponge.damage
 		else
 			brainloss = 200
 	else
@@ -119,7 +123,7 @@
 				amount *= M.incoming_damage_percent
 			if(!isnull(M.incoming_brute_damage_percent))
 				amount *= M.incoming_brute_damage_percent
-		if(nif && nif.flag_check(NIF_C_BRUTEARMOR,NIF_FLAGS_COMBAT)){amount *= 0.7} //VOREStation Edit - NIF mod for damage resistance for this type of damage
+		if(nif && nif.flag_check(NIF_C_BRUTEARMOR,NIF_FLAGS_COMBAT)){amount *= 0.7} // NIF mod for damage resistance for this type of damage
 		take_overall_damage(amount, 0)
 	else
 		for(var/datum/modifier/M in modifiers)
@@ -137,7 +141,7 @@
 				amount *= M.incoming_damage_percent
 			if(!isnull(M.incoming_fire_damage_percent))
 				amount *= M.incoming_fire_damage_percent
-		if(nif && nif.flag_check(NIF_C_BURNARMOR,NIF_FLAGS_COMBAT)){amount *= 0.7} //VOREStation Edit - NIF mod for damage resistance for this type of damage
+		if(nif && nif.flag_check(NIF_C_BURNARMOR,NIF_FLAGS_COMBAT)){amount *= 0.7} // NIF mod for damage resistance for this type of damage
 		take_overall_damage(0, amount)
 	else
 		for(var/datum/modifier/M in modifiers)
@@ -157,7 +161,7 @@
 					amount *= M.incoming_damage_percent
 				if(!isnull(M.incoming_brute_damage_percent))
 					amount *= M.incoming_brute_damage_percent
-			if(nif && nif.flag_check(NIF_C_BRUTEARMOR,NIF_FLAGS_COMBAT)){amount *= 0.7} //VOREStation Edit - NIF mod for damage resistance for this type of damage
+			if(nif && nif.flag_check(NIF_C_BRUTEARMOR,NIF_FLAGS_COMBAT)){amount *= 0.7} //NIF mod for damage resistance for this type of damage
 			O.take_damage(amount, 0, sharp=is_sharp(damage_source), edge=has_edge(damage_source), used_weapon=damage_source)
 		else
 			for(var/datum/modifier/M in modifiers)
@@ -179,7 +183,7 @@
 					amount *= M.incoming_damage_percent
 				if(!isnull(M.incoming_fire_damage_percent))
 					amount *= M.incoming_fire_damage_percent
-			if(nif && nif.flag_check(NIF_C_BURNARMOR,NIF_FLAGS_COMBAT)){amount *= 0.7} //VOREStation Edit - NIF mod for damage resistance for this type of damage
+			if(nif && nif.flag_check(NIF_C_BURNARMOR,NIF_FLAGS_COMBAT)){amount *= 0.7} // NIF mod for damage resistance for this type of damage
 			O.take_damage(0, amount, sharp=is_sharp(damage_source), edge=has_edge(damage_source), used_weapon=damage_source)
 		else
 			for(var/datum/modifier/M in modifiers)
@@ -191,17 +195,17 @@
 	update_hud_med_all()
 
 /mob/living/carbon/human/Stun(amount)
-	if(HULK in mutations)
+	if(MUTATION_HULK in mutations)
 		return
 	..()
 
 /mob/living/carbon/human/Weaken(amount)
-	if(HULK in mutations)
+	if(MUTATION_HULK in mutations)
 		return
 	..()
 
 /mob/living/carbon/human/Paralyse(amount)
-	if(HULK in mutations)
+	if(MUTATION_HULK in mutations)
 		return
 	// Notify our AI if they can now control the suit.
 	if(wearing_rig && !stat && paralysis < amount) //We are passing out right this second.
@@ -440,7 +444,7 @@ This function restores all organs.
 	if((damagetype != BRUTE) && (damagetype != BURN))
 		if(damagetype == HALLOSS)
 			if((damage > 25 && prob(20)) || (damage > 50 && prob(60)))
-				if(organ && organ.organ_can_feel_pain() && !isbelly(loc) && !istype(loc, /obj/item/dogborg/sleeper)) //VOREStation Add
+				if(organ && organ.organ_can_feel_pain() && !isbelly(loc) && !istype(loc, /obj/item/dogborg/sleeper))
 					emote("scream")
 		..(damage, damagetype, def_zone, blocked, soaked)
 		return 1

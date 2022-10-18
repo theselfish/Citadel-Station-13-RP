@@ -18,7 +18,6 @@
 /obj/machinery/bodyscanner/Initialize(mapload, newdir)
 	. = ..()
 	default_apply_parts()
-	RefreshParts()
 
 /obj/machinery/bodyscanner/Destroy()
 	if(console)
@@ -57,7 +56,7 @@
 			return
 		M.forceMove(src)
 		occupant = M
-		update_icon() //icon_state = "body_scanner_1" //VOREStation Edit - Health display for consoles with light and such.
+		update_icon() //icon_state = "body_scanner_1" // Health display for consoles with light and such.
 		playsound(src, 'sound/machines/medbayscanner1.ogg', 50) // Beepboop you're being scanned. <3
 		add_fingerprint(user)
 		qdel(G)
@@ -67,7 +66,7 @@
 		if(default_deconstruction_crowbar(user, G))
 			return
 
-/obj/machinery/bodyscanner/MouseDrop_T(mob/living/carbon/O, mob/user as mob)
+/obj/machinery/bodyscanner/MouseDroppedOnLegacy(mob/living/carbon/O, mob/user as mob)
 	if(!istype(O))
 		return FALSE //not a mob
 	if(user.incapacitated())
@@ -209,17 +208,6 @@
 		return attack_hand(user)
 
 /obj/machinery/body_scanconsole/power_change()
-	/* VOREStation Removal
-	if(machine_stat & BROKEN)
-		icon_state = "body_scannerconsole-p"
-	else if(powered() && !panel_open)
-		icon_state = initial(icon_state)
-		machine_stat &= ~NOPOWER
-	else
-		spawn(rand(0, 15))
-			icon_state = "body_scannerconsole-p"
-			machine_stat |= NOPOWER
-	*/
 	update_icon() //Health display for consoles with light and such.
 
 /obj/machinery/body_scanconsole/ex_act(severity)
@@ -402,9 +390,9 @@
 
 			occupantData["intOrgan"] = intOrganData
 
-			occupantData["blind"] = (H.sdisabilities & BLIND)
-			occupantData["nearsighted"] = (H.disabilities & NEARSIGHTED)
-			occupantData = attempt_vr(scanner,"get_occupant_data_vr",list(occupantData,H)) //VOREStation Insert
+			occupantData["blind"] = (H.sdisabilities & SDISABILITY_NERVOUS)
+			occupantData["nearsighted"] = (H.disabilities & DISABILITY_NEARSIGHTED)
+			occupantData = attempt_vr(scanner,"get_occupant_data_vr",list(occupantData,H))
 		data["occupant"] = occupantData
 
 	ui = SSnanoui.try_update_ui(user, src, ui_key, ui, data, force_open)
@@ -612,9 +600,9 @@
 				dat += "<td>[i.name]</td><td>N/A</td><td>[i.damage]</td><td>[infection]:[mech][i_dead]</td><td></td>"
 				dat += "</tr>"
 			dat += "</table>"
-			if(occupant.sdisabilities & BLIND)
+			if(occupant.sdisabilities & SDISABILITY_NERVOUS)
 				dat += "<font color='red'>Cataracts detected.</font><BR>"
-			if(occupant.disabilities & NEARSIGHTED)
+			if(occupant.disabilities & DISABILITY_NEARSIGHTED)
 				dat += "<font color='red'>Retinal misalignment detected.</font><BR>"
 		else
 			dat += "\The [src] is empty."

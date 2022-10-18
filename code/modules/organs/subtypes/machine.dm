@@ -5,8 +5,6 @@
 	organ_tag = O_CELL
 	parent_organ = BP_TORSO
 	vital = 1
-	/// This sits in the brain organ slot, but is not a brain.
-	var/defib_timer = 1
 
 /obj/item/organ/internal/cell/Initialize(mapload)
 	. = ..()
@@ -20,7 +18,6 @@
 		owner.visible_message("<span class='danger'>\The [owner] twitches visibly!</span>")
 
 /obj/item/organ/internal/cell/emp_act(severity)
-	// ..() // VOREStation Edit - Don't take damage
 	owner.nutrition = max(0, owner.nutrition - rand(10/severity, 50/severity))
 
 /obj/item/organ/internal/cell/machine/handle_organ_proc_special()
@@ -54,10 +51,6 @@
 		return
 	stored_mmi = new brain_type(src)
 	addtimer(CALLBACK(src, .proc/update_from_mmi), 0)
-
-///This sits in the brain organ slot, but is not a brain. Posibrains and dronecores aren't brains either.
-/obj/item/organ/internal/mmi_holder/proc/tick_defib_timer()
-	return
 
 /obj/item/organ/internal/mmi_holder/proc/get_control_efficiency()
 	. = max(0, 1 - round(damage / max_damage, 0.1))
@@ -93,19 +86,15 @@
 /obj/item/organ/internal/mmi_holder/removed(var/mob/living/user)
 
 	if(stored_mmi)
-		. = stored_mmi //VOREStation Code
+		. = stored_mmi
 		stored_mmi.forceMove(drop_location())
 		if(owner.mind)
 			owner.mind.transfer_to(stored_mmi.brainmob)
 	..()
 
-	var/mob/living/holder_mob = loc
-	if(istype(holder_mob))
-		holder_mob.drop_from_inventory(src)
 	qdel(src)
 
 /obj/item/organ/internal/mmi_holder/emp_act(severity)
-	// ..() // VOREStation Edit - Don't take damage
 	owner.adjustToxLoss(rand(6/severity, 12/severity))
 
 /obj/item/organ/internal/mmi_holder/posibrain

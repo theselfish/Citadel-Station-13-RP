@@ -76,8 +76,8 @@
 ////#define COMSIG_FIREALARM_ON_RESET "firealarm_reset"
 
 //! /obj access signals
-////#define COMSIG_OBJ_ALLOWED "door_try_to_activate"
-	////#define COMPONENT_OBJ_ALLOW (1<<0)
+#define COMSIG_OBJ_ALLOWED "door_try_to_activate"
+	#define COMPONENT_OBJ_ALLOW (1<<0)
 
 ////#define COMSIG_AIRLOCK_SHELL_ALLOWED "airlock_shell_try_allowed"
 	////#define COMPONENT_AIRLOCK_SHELL_ALLOW (1<<0)
@@ -91,18 +91,6 @@
 ////#define COMSIG_AIRLOCK_SET_BOLT "airlock_set_bolt"
 
 //! /obj/item signals
-/// From base of obj/item/equipped(): (/mob/equipper, slot)
-#define COMSIG_ITEM_EQUIPPED "item_equip"
-/// A mob has just equipped an item. Called on [/mob] from base of [/obj/item/equipped()]: (/obj/item/equipped_item, slot)
-////#define COMSIG_MOB_EQUIPPED_ITEM "mob_equipped_item"
-/// A mob has just unequipped an item.
-////#define COMSIG_MOB_UNEQUIPPED_ITEM "mob_unequipped_item"
-/// Called on [/obj/item] before unequip from base of [mob/proc/doUnEquip]: (force, atom/newloc, no_move, invdrop, silent)
-////#define COMSIG_ITEM_PRE_UNEQUIP "item_pre_unequip"
-	///? Only the pre unequip can be cancelled.
-	////#define COMPONENT_ITEM_BLOCK_UNEQUIP (1<<0)
-/// Called on [/obj/item] AFTER unequip from base of [mob/proc/doUnEquip]: (force, atom/newloc, no_move, invdrop, silent)
-////#define COMSIG_ITEM_POST_UNEQUIP "item_post_unequip"
 /// From base of obj/item/on_grind(): ())
 ////#define COMSIG_ITEM_ON_GRIND "on_grind"
 /// From base of obj/item/on_juice(): ()
@@ -111,10 +99,6 @@
 ////#define COMSIG_ITEM_ON_COMPOSTED "on_composted"
 /// Called when an item is dried by a drying rack:
 ////#define COMSIG_ITEM_DRIED "item_dried"
-/// From base of obj/item/dropped(): (mob/user)
-#define COMSIG_ITEM_DROPPED "item_drop"
-/// From base of obj/item/pickup(): (/mob/taker)
-#define COMSIG_ITEM_PICKUP "item_pickup"
 /// From base of mob/living/carbon/attacked_by(): (mob/living/carbon/target, mob/living/user, hit_zone)
 ////#define COMSIG_ITEM_ATTACK_ZONE "item_attack_zone"
 ///return a truthy value to prevent ensouling, checked in /obj/effect/proc_holder/spell/targeted/lichdom/cast(): (mob/user)
@@ -246,7 +230,7 @@
 ////#define COMSIG_IMPLANT_IMPLANTED "implant_implanted"
 
 /// Called on implants, after an implant has been removed: (mob/living/source, silent, special)
-////#define COMSIG_IMPLANT_REMOVED "implant_removed"
+#define COMSIG_IMPLANT_REMOVED "implant_removed"
 
 /// Called as a mindshield is implanted: (mob/user)
 ////#define COMSIG_PRE_MINDSHIELD_IMPLANT "pre_mindshield_implant"

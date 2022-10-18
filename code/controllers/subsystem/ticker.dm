@@ -30,8 +30,6 @@ SUBSYSTEM_DEF(ticker)
 	var/event_time = null
 	var/event = 0
 
-	// var/login_music			// music played in pregame lobby // VOREStation Edit - We do music differently
-
 	var/list/datum/mind/minds = list()//The people in the game. Used for objective tracking.
 
 	var/Bible_icon_state	// icon_state the chaplain has chosen for his bible
@@ -168,6 +166,9 @@ SUBSYSTEM_DEF(ticker)
 		timeLeft = newtime
 
 /datum/controller/subsystem/ticker/proc/setup()
+	to_chat(world, "<span class='boldannounce'>Starting game...</span>")
+	var/init_start = world.timeofday
+
 	//Create and announce mode
 	if(master_mode=="secret")
 		src.hide_mode = 1
@@ -226,7 +227,6 @@ SUBSYSTEM_DEF(ticker)
 	create_characters() //Create player characters and transfer them.
 	collect_minds()
 	equip_characters()
-	//data_core.manifest()	//VOREStation Removal
 
 	callHook("roundstart")
 
@@ -235,11 +235,13 @@ SUBSYSTEM_DEF(ticker)
 		cb.InvokeAsync()
 	LAZYCLEARLIST(round_start_events)
 
-	for(var/atom/movable/landmark/L in GLOB.landmarks_list)
+	for(var/obj/landmark/L in GLOB.landmarks_list)
 		// type filtered, we cannot risk runtimes
 		L.OnRoundstart()
 
+	log_world("Game start took [(world.timeofday - init_start)/10]s")
 	round_start_time = world.time
+	SSdbcore.SetRoundStart()
 
 	// TODO Dear God Fix This.  Fix all of this. Not just this line, this entire proc. This entire file!
 	spawn(0)//Forking here so we dont have to wait for this to finish
@@ -395,13 +397,11 @@ SUBSYSTEM_DEF(ticker)
 			else if(!player.mind.assigned_role)
 				continue
 			else
-				//VOREStation Edit Start
 				var/mob/living/carbon/human/new_char = player.create_character()
 				if(new_char)
 					qdel(player)
 				if(istype(new_char) && !(new_char.mind.assigned_role=="Cyborg"))
 					data_core.manifest_inject(new_char)
-				//VOREStation Edit End
 
 
 /datum/controller/subsystem/ticker/proc/collect_minds()
@@ -419,8 +419,6 @@ SUBSYSTEM_DEF(ticker)
 			if(!player_is_antag(player.mind, only_offstation_roles = 1))
 				job_master.EquipRank(player, player.mind.assigned_role, 0)
 				UpdateFactionList(player)
-				//equip_custom_items(player)	//VOREStation Removal
-				//player.apply_traits() //VOREStation Removal
 	if(captainless)
 		for(var/mob/M in player_list)
 			if(!istype(M,/mob/new_player))
@@ -468,6 +466,7 @@ SUBSYSTEM_DEF(ticker)
 				broadcastmessage += "\n\n<@&[CONFIG_GET(string/chat_reboot_role)]>, the server will reboot shortly!"
 			send2chat(broadcastmessage, CONFIG_GET(string/chat_roundend_notice_tag))
 
+		SSdbcore.SetRoundEnd()
 		SSpersistence.SavePersistence()
 		ready_for_reboot = TRUE
 		standard_reboot()

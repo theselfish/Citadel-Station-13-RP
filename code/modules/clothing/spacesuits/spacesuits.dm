@@ -65,7 +65,6 @@
 	name = "Space suit"
 	desc = "A suit that protects against low pressure environments."
 	icon = 'icons/obj/clothing/spacesuits.dmi'
-	update_icon_define = INV_SPACESUIT_DEF_ICON
 	icon_state = "space"
 	w_class = ITEMSIZE_HUGE // So you can't fit this in your bag and be prepared at all times.
 	gas_transfer_coefficient = 0.01
@@ -87,13 +86,13 @@
 	valid_accessory_slots = (ACCESSORY_SLOT_OVER | ACCESSORY_SLOT_ARMBAND | ACCESSORY_SLOT_DECOR)
 	var/list/supporting_limbs //If not-null, automatically splints breaks. Checked when removing the suit.
 
-/obj/item/clothing/suit/space/equipped(mob/M)
+/obj/item/clothing/suit/space/equipped(mob/M, slot, accessory, silent, creation)
 	check_limb_support(M)
-	..()
+	return ..()
 
-/obj/item/clothing/suit/space/dropped(var/mob/user)
+/obj/item/clothing/suit/space/dropped(mob/user, flags, atom/newLoc)
 	check_limb_support(user)
-	..()
+	return ..()
 
 // Some space suits are equipped with reactive membranes that support
 // broken limbs - at the time of writing, only the ninja suit, but

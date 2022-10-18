@@ -27,12 +27,15 @@
 #define LAZYNULL(L) L = null
 /// Null-safe L.Cut()
 #define LAZYCLEARLIST(L) if(L) L.Cut()
+/// Null-safe L.Copy()
+#define LAZYCOPY(L) (L? L.Copy() : null)
 /// Reads L or an empty list if L is not a list.  Note: Does NOT assign, L may be an expression.
 #define SANITIZE_LIST(L) ( islist(L) ? L : list() )
 #define SANITIZE_TO_LIST(L) ( islist(L) ? L : list(L) )
 #define reverseList(L) reverseRange(L.Copy())
 
 #define SAFEPICK(L) (length(L)? pick(L) : null)
+#define SAFEFIND(L, S) (length(L)? (L.Find(S)) : null)
 #define SAFEACCESS(L, I) (isnum(I)? (SAFEINDEXACCESS(L, I)) : ((I in L)? L[I] : null))
 #define SAFEINDEXACCESS(L, I) (ISINRANGE(I, 1, length(L))? L[I] : null)
 // Returns the key based on the index

@@ -31,21 +31,18 @@
 		reagents.add_reagent("nutriment",nutriment_amt,nutriment_desc)
 
 	//Placeholder for effect that trigger on eating that aren't tied to reagents.
-/obj/item/reagent_containers/food/snacks/proc/On_Consume(var/mob/M)
-	if(!usr)
-		usr = M
+/obj/item/reagent_containers/food/snacks/proc/On_Consume(mob/M)
 	if(!reagents.total_volume)
 		M.visible_message("<span class='notice'>[M] finishes eating \the [src].</span>","<span class='notice'>You finish eating \the [src].</span>")
-		usr.drop_from_inventory(src)	//so icons update :[
-
+		M.temporarily_remove_from_inventory(src, INV_OP_FORCE | INV_OP_SHOULD_NOT_INTERCEPT | INV_OP_SILENT)
 		if(trash)
 			if(ispath(trash,/obj/item))
-				var/obj/item/TrashItem = new trash(usr)
-				usr.put_in_hands(TrashItem)
+				var/obj/item/TrashItem = new trash(M)
+				if(!M.put_in_hands(TrashItem))
+					TrashItem.forceMove(M.drop_location())
 			else if(istype(trash,/obj/item))
-				usr.put_in_hands(trash)
+				M.put_in_hands(trash)
 		qdel(src)
-	return
 
 /obj/item/reagent_containers/food/snacks/attack_self(mob/user as mob)
 	return
@@ -53,7 +50,6 @@
 /obj/item/reagent_containers/food/snacks/attack(mob/M as mob, mob/user as mob, def_zone)
 	if(reagents && !reagents.total_volume)
 		to_chat(user, "<span class='danger'>None of [src] left!</span>")
-		user.drop_from_inventory(src)
 		qdel(src)
 		return 0
 
@@ -76,7 +72,6 @@
 					to_chat(user, "<span class='warning'>\The [blocked] is in the way!</span>")
 					return
 
-			 // Vorestation edits in this section.
 			user.setClickCooldown(user.get_attack_speed(src)) //puts a limit on how fast people can eat/drink things
 			if (fullness <= 100)
 				to_chat(M, "<span class='danger'>You hungrily chew out a piece of [src] and gobble it!</span>")
@@ -113,27 +108,15 @@
 				if(blocked)
 					to_chat(user, "<span class='warning'>\The [blocked] is in the way!</span>")
 					return
-
-			if(!istype(M, /mob/living/carbon/slime))		//If you're feeding it to someone else.
-
-				/*if (fullness <= (550 * (1 + M.overeatduration / 1000))) // Vorestation edit
-					user.visible_message("<span class='danger'>[user] attempts to feed [M] [src].</span>")
-				else
-					user.visible_message("<span class='danger'>[user] cannot force anymore of [src] down [M]'s throat.</span>")
-					return 0*/
-				user.visible_message("<span class='danger'>[user] attempts to feed [M] [src].</span>") // Vorestation edit
-
-				user.setClickCooldown(user.get_attack_speed(src))
-				if(!do_mob(user, M)) return
-
-				//Do we really care about this
-				add_attack_logs(user,M,"Fed with [src.name] containing [reagentlist(src)]", admin_notify = FALSE)
-
-				user.visible_message("<span class='danger'>[user] feeds [M] [src].</span>")
-
-			else
-				to_chat(user, "This creature does not seem to have a mouth!")
+					
+			user.visible_message(SPAN_DANGER("[user] attempts to feed [M] [src]."))
+			user.setClickCooldown(user.get_attack_speed(src))
+			if(!do_mob(user, M, 3 SECONDS))
 				return
+			//Do we really care about this
+			// yes we do you idiot
+			add_attack_logs(user,M,"Fed with [src.name] containing [reagentlist(src)]", admin_notify = FALSE)
+			user.visible_message("<span class='danger'>[user] feeds [M] [src].</span>")
 
 		if(reagents)								//Handle ingestion of the reagent.
 			playsound(M.loc,'sound/items/eatfood.ogg', rand(10,50), 1)
@@ -203,11 +186,11 @@
 		if (hide_item)
 			if (W.w_class >= src.w_class || is_robot_module(W))
 				return
+			if(!user.attempt_insert_item_for_installation(W, src))
+				return
 
 			to_chat(user, "<span class='warning'>You slip \the [W] inside \the [src].</span>")
-			user.drop_from_inventory(W, src)
 			add_fingerprint(user)
-			contents += W
 			return
 
 		if (has_edge(W))
@@ -315,6 +298,36 @@
 	reagents.add_reagent("protein", 1)
 	bitesize = 2
 
+/obj/item/reagent_containers/food/snacks/spunow
+	name = "spunoW bar"
+	desc = "Sticky, sweet coconut covered in dark chocolate."
+	icon_state = "spunow"
+	trash = /obj/item/trash/candy
+	filling_color = "#d6d6d6"
+	nutriment_amt = 3
+	nutriment_desc = list("chocolate" = 2, "coconut" = 2)
+
+/obj/item/reagent_containers/food/snacks/spunow/Initialize(mapload)
+	. = ..()
+	reagents.add_reagent("coconutmilk", 4)
+	reagents.add_reagent("protein", 1)
+	bitesize = 2
+
+/obj/item/reagent_containers/food/snacks/glad2nut
+	name = "Glad2Nut bar"
+	desc = "Sticky, sweet coconut and almonds covered in milk chocolate."
+	icon_state = "glad2nut"
+	trash = /obj/item/trash/candy
+	filling_color = "#d6d6d6"
+	nutriment_amt = 3
+	nutriment_desc = list("chocolate" = 2, "coconut" = 2, "almond" = 1)
+
+/obj/item/reagent_containers/food/snacks/glad2nut/Initialize(mapload)
+	. = ..()
+	reagents.add_reagent("coconutmilk", 4)
+	reagents.add_reagent("protein", 1)
+	bitesize = 2
+
 /obj/item/reagent_containers/food/snacks/candy/proteinbar // Buff 17 >> 21
 	name = "protein bar"
 	desc = "SwoleMAX brand protein bars, guaranteed to get you feeling perfectly overconfident."
@@ -387,19 +400,7 @@
 	nutriment_amt = 5
 	nutriment_desc = list("sugar" = 3, "protein" = 2)
 	slot_flags = SLOT_MASK
-	sprite_sheets = list(
-		SPECIES_TESHARI = 'icons/mob/clothing/species/teshari/masks.dmi',
-		SPECIES_VOX = 'icons/mob/clothing/species/vox/masks.dmi',
-		SPECIES_TAJ = 'icons/mob/clothing/species/tajaran/mask_vr.dmi',
-		SPECIES_UNATHI = 'icons/mob/clothing/species/unathi/mask_vr.dmi',
-		SPECIES_SERGAL = 'icons/mob/clothing/species/sergal/mask_vr.dmi',
-		SPECIES_NEVREAN = 'icons/mob/clothing/species/nevrean/mask_vr.dmi',
-		SPECIES_ZORREN_HIGH = 'icons/mob/clothing/species/fox/mask_vr.dmi',
-		SPECIES_ZORREN_FLAT = 'icons/mob/clothing/species/fennec/mask_vr.dmi',
-		SPECIES_AKULA = 'icons/mob/clothing/species/akula/mask_vr.dmi',
-		SPECIES_VULPKANIN = 'icons/mob/clothing/species/vulpkanin/mask.dmi',
-		SPECIES_XENOCHIMERA = 'icons/mob/clothing/species/tajaran/mask_vr.dmi'
-		)
+
 /obj/item/reagent_containers/food/snacks/dtreat/Initialize(mapload)
 	. = ..()
 	bitesize = 1
@@ -590,12 +591,11 @@
 		return
 	to_chat(user, "You crack \the [src] into \the [O].")
 	reagents.trans_to(O, reagents.total_volume)
-	user.drop_from_inventory(src)
 	qdel(src)
 
 /obj/item/reagent_containers/food/snacks/egg/throw_impact(atom/hit_atom)
 	. = ..()
-	new/obj/effect/decal/cleanable/egg_smudge(src.loc)
+	new/obj/effect/debris/cleanable/egg_smudge(src.loc)
 	src.reagents.splash(hit_atom, reagents.total_volume)
 	src.visible_message("<font color='red'>[src.name] has been squashed.</font>","<font color='red'>You hear a smack.</font>")
 	qdel(src)
@@ -740,6 +740,8 @@
 
 /obj/item/reagent_containers/food/snacks/carpmeat/fish // Removed toxin and added a bit more oomph
 	desc = "A fillet of fish meat."
+	toxin_amount = 0
+	toxin_type = null
 	nutriment_amt = 2
 
 /obj/item/reagent_containers/food/snacks/carpmeat/fish/Initialize(mapload)
@@ -1092,7 +1094,7 @@
 
 /obj/item/reagent_containers/food/snacks/pie/throw_impact(atom/hit_atom)
 	. = ..()
-	new/obj/effect/decal/cleanable/pie_smudge(src.loc)
+	new/obj/effect/debris/cleanable/pie_smudge(src.loc)
 	src.visible_message("<span class='danger'>\The [src.name] splats.</span>","<span class='danger'>You hear a splat.</span>")
 	qdel(src)
 
@@ -1805,9 +1807,6 @@
 	H.set_species(species_type_by_name(monkey_type))
 	H.real_name = H.species.get_random_name()
 	H.name = H.real_name
-	if(ismob(loc))
-		var/mob/M = loc
-		M.unEquip(src)
 	qdel(src)
 	return 1
 
@@ -3203,7 +3202,7 @@
 		return
 
 	if( boxes.len > 0 )
-		if( user.get_inactive_hand() != src )
+		if( user.get_inactive_held_item() != src )
 			. = ..()
 			return
 
@@ -3241,9 +3240,8 @@
 				boxestoadd += i
 
 			if( (boxes.len+1) + boxestoadd.len <= 5 )
-				user.drop_item()
-
-				box.loc = src
+				if(!user.attempt_insert_item_for_installation(box, src))
+					return
 				box.boxes = list() // Clear the box boxes so we don't have boxes inside boxes. - Xzibit
 				src.boxes.Add( boxestoadd )
 
@@ -3261,9 +3259,9 @@
 	if( istype(I, /obj/item/reagent_containers/food/snacks/sliceable/pizza/) ) // Long ass fucking object name
 
 		if( src.open )
-			user.drop_item()
-			I.loc = src
-			src.pizza = I
+			if(!user.attempt_insert_item_for_installation(I, src))
+				return
+			pizza = I
 
 			update_icon()
 
@@ -4042,9 +4040,7 @@ END CITADEL CHANGE */
 
 		if (!feeder)
 			feeder = eater
-
-		feeder.drop_from_inventory(src)	//so icons update :[ //what the fuck is this????
-
+		feeder.temporarily_remove_from_inventory(src, INV_OP_FORCE | INV_OP_SHOULD_NOT_INTERCEPT | INV_OP_SILENT)
 		if(trash)
 			if(ispath(trash,/obj/item))
 				var/obj/item/TrashItem = new trash(feeder)
@@ -4052,7 +4048,7 @@ END CITADEL CHANGE */
 			else if(istype(trash,/obj/item))
 				feeder.put_in_hands(trash)
 		qdel(src)
-	return
+
 ////////////////////////////////////////////////////////////////////////////////
 /// FOOD END
 ////////////////////////////////////////////////////////////////////////////////
@@ -4096,7 +4092,7 @@ END CITADEL CHANGE */
 		. = ..()
 		reagents.add_reagent("protein", 6)
 		reagents.add_reagent("batter", 1.7)
-		reagents.add_reagent("oil", 1.5)
+		reagents.add_reagent("cooking_oil", 1.5)
 		bitesize = 2
 
 /obj/item/reagent_containers/food/snacks/jalapeno_poppers
@@ -4112,7 +4108,7 @@ END CITADEL CHANGE */
 /obj/item/reagent_containers/food/snacks/jalapeno_poppers/Initialize(mapload)
 	. = ..()
 	reagents.add_reagent("batter", 2)
-	reagents.add_reagent("oil", 2)
+	reagents.add_reagent("cooking_oil", 2)
 
 /obj/item/reagent_containers/food/snacks/mouseburger
 	name = "mouse burger"
@@ -4146,7 +4142,7 @@ END CITADEL CHANGE */
 	. = ..()
 	reagents.add_reagent("protein", 6)
 	reagents.add_reagent("beerbatter", 2)
-	reagents.add_reagent("oil", 1)
+	reagents.add_reagent("cooking_oil", 1)
 	bitesize = 1.5
 
 /obj/item/reagent_containers/food/snacks/fries
@@ -4155,7 +4151,7 @@ END CITADEL CHANGE */
 
 /obj/item/reagent_containers/food/snacks/fries/Initialize(mapload)
 	. = ..()
-	reagents.add_reagent("oil", 1.2)//This is mainly for the benefit of adminspawning
+	reagents.add_reagent("cooking_oil", 1.2)//This is mainly for the benefit of adminspawning
 	bitesize = 2
 
 /obj/item/reagent_containers/food/snacks/microchips
@@ -4205,7 +4201,7 @@ END CITADEL CHANGE */
 	. = ..()
 	reagents.add_reagent("batter", 6.5)
 	coating = reagents.get_reagent("batter")
-	reagents.add_reagent("oil", 4)
+	reagents.add_reagent("cooking_oil", 4)
 	bitesize = 2
 
 /obj/item/reagent_containers/food/snacks/pizzacrunchslice
@@ -4654,14 +4650,16 @@ END CITADEL CHANGE */
 		var/obj/item/reagent_containers/food/snacks/variable/mob/MF = W
 
 		switch (MF.kitchen_tag)
+			// if you see me on git blame, i wasn't the one who made this shiticode, i'm just passing through  ~silicons
 			if ("rodent")
 				result = new /obj/item/reagent_containers/food/snacks/mouseburger(src)
 				to_chat(user, "You make a mouse burger!")
+				qdel(src)
 
-		switch (MF.kitchen_tag)
 			if ("lizard")
 				result = new /obj/item/reagent_containers/food/snacks/mouseburger(src)
 				to_chat(user, "You make a lizard burger!")
+				qdel(src)
 	if (result)
 		if (W.reagents)
 			//Reagents of reuslt objects will be the sum total of both.  Except in special cases where nonfood items are used
@@ -4672,8 +4670,9 @@ END CITADEL CHANGE */
 
 		//If the bun was in your hands, the result will be too
 		if (loc == user)
-			user.drop_from_inventory(src)
+			user.drop_item_to_ground(src, INV_OP_FORCE)
 			user.put_in_hands(result)
+
 
 // Chip update.
 /obj/item/reagent_containers/food/snacks/tortilla
@@ -4772,10 +4771,9 @@ END CITADEL CHANGE */
 			user.put_in_hands(waste)
 		qdel(src)
 
-/obj/item/reagent_containers/food/snacks/chipplate/MouseDrop(mob/user) //Dropping the chip onto the user
+/obj/item/reagent_containers/food/snacks/chipplate/OnMouseDropLegacy(mob/user) //Dropping the chip onto the user
 	if(istype(user) && user == usr)
 		user.put_in_active_hand(src)
-		src.pickup(user)
 		return
 	. = ..()
 
@@ -5540,7 +5538,6 @@ END CITADEL CHANGE */
 		return
 	to_chat(user, "<span class='notice'>You tear \the [src]'s sac open, pouring it into \the [O].</span>")
 	reagents.trans_to(O, reagents.total_volume)
-	user.drop_from_inventory(src)
 	qdel(src)
 
 /obj/item/reagent_containers/food/snacks/baschbeans
@@ -6634,3 +6631,16 @@ END CITADEL CHANGE */
 	. = ..()
 	reagents.add_reagent("protein", 7)
 	bitesize = 2
+
+/obj/item/reagent_containers/food/snacks/brainsnax
+	name = "Brainsnax"
+	desc = "A green can, filled to the brim with vatgrown brain matter, in all its juicy glory. Rich in lymbic system!"
+	icon_state = "brainsnaxopen"
+	trash = /obj/item/trash/brainsnaxtrash
+	nutriment_amt = 5
+	nutriment_desc = list("protein" = 3, "iron" = 2)
+
+/obj/item/reagent_containers/food/snacks/bugsnacks/Initialize(mapload)
+	. = ..()
+	bitesize = 2
+

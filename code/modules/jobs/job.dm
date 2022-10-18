@@ -59,7 +59,7 @@
 
 /datum/job/New()
 	. = ..()
-	department_accounts = department_accounts || departments_managed
+	GLOB.department_accounts = GLOB.department_accounts || departments_managed
 
 /datum/job/proc/equip(var/mob/living/carbon/human/H, var/alt_title)
 	var/datum/outfit/outfit = get_outfit(H, alt_title)
@@ -93,7 +93,7 @@
 			if(CLASS_LOWER)		income = 0.50
 
 	// Give them an account in the station database
-	var/money_amount = (rand(15,40) + rand(15,40)) * income * economic_modifier * ECO_MODIFIER //VOREStation Edit - Smoothed peaks, ECO_MODIFIER rather than per-species ones.
+	var/money_amount = (rand(15,40) + rand(15,40)) * income * economic_modifier * ECO_MODIFIER // Smoothed peaks, ECO_MODIFIER rather than per-species ones.
 	var/datum/money_account/M = create_account(H.real_name, money_amount, null, offmap_spawn)
 	if(H.mind)
 		var/remembered_info = ""
@@ -180,9 +180,7 @@
 	mannequin.delete_inventory(TRUE)
 	equip_preview(mannequin)
 	if(mannequin.back)
-		var/obj/O = mannequin.back
-		mannequin.drop_from_inventory(O)
-		qdel(O)
+		qdel(mannequin.back)
 
 /// Check client-specific availability rules.
 /datum/job/proc/player_has_enough_pto(client/C)
@@ -191,14 +189,14 @@
 /datum/job/proc/equip_backpack(mob/living/carbon/human/H)
 	switch(H.backbag)
 		if(2)
-			H.equip_to_slot_or_del(new /obj/item/storage/backpack(H), slot_back)
+			H.equip_to_slot_or_del(new /obj/item/storage/backpack(H), SLOT_ID_BACK)
 		if(3)
-			H.equip_to_slot_or_del(new /obj/item/storage/backpack/satchel/norm(H), slot_back)
+			H.equip_to_slot_or_del(new /obj/item/storage/backpack/satchel/norm(H), SLOT_ID_BACK)
 		if(4)
-			H.equip_to_slot_or_del(new /obj/item/storage/backpack/satchel(H), slot_back)
+			H.equip_to_slot_or_del(new /obj/item/storage/backpack/satchel(H), SLOT_ID_BACK)
 		if(5)
-			H.equip_to_slot_or_del(new /obj/item/storage/backpack/messenger(H), slot_back)
+			H.equip_to_slot_or_del(new /obj/item/storage/backpack/messenger(H), SLOT_ID_BACK)
 		if(6)
-			H.equip_to_slot_or_del(new /obj/item/storage/backpack/rig(H), slot_back)
+			H.equip_to_slot_or_del(new /obj/item/storage/backpack/rig(H), SLOT_ID_BACK)
 		if(7)
-			H.equip_to_slot_or_del(new /obj/item/storage/backpack/dufflebag(H), slot_back)
+			H.equip_to_slot_or_del(new /obj/item/storage/backpack/dufflebag(H), SLOT_ID_BACK)

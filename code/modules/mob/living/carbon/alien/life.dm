@@ -1,22 +1,19 @@
 // Alien larva are quite simple.
-/mob/living/carbon/alien/Life()
-
-	set invisibility = 0
-	set background = 1
-
-	if (transforming)	return
-	if(!loc)			return
-
-	..()
-
-	if (stat != DEAD) //still breathing
-		// GROW!
-		update_progression()
-
+/mob/living/carbon/alien/Life(seconds, times_fired)
 	blinded = null
+	. = ..()
+	if(.)
+		return
 
-	//Status updates, death etc.
-	update_icons()
+	if(!transforming)
+		update_icons()
+
+/mob/living/carbon/alien/BiologicalLife(seconds, times_fired)
+	if((. = ..()))
+		return
+
+	if(stat != DEAD)
+		update_progression()
 
 /mob/living/carbon/alien/handle_mutations_and_radiation()
 
@@ -87,7 +84,7 @@
 	return 1
 
 /mob/living/carbon/alien/handle_regular_hud_updates()
-	if (stat == 2 || (XRAY in src.mutations))
+	if (stat == 2 || (MUTATION_XRAY in src.mutations))
 		AddSightSelf(SEE_TURFS | SEE_MOBS | SEE_OBJS)
 		SetSeeInDarkSelf(8)
 		SetSeeInvisibleSelf(SEE_INVISIBLE_LEVEL_TWO)
@@ -121,7 +118,7 @@
 			overlay_fullscreen("blind", /atom/movable/screen/fullscreen/scaled/blind)
 		else
 			clear_fullscreen("blind")
-		if(disabilities & NEARSIGHTED)
+		if(disabilities & DISABILITY_NEARSIGHTED)
 			overlay_fullscreen("impaired", /atom/movable/screen/fullscreen/scaled/impaired, 1)
 		else
 			clear_fullscreen("impaired")

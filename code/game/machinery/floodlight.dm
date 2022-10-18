@@ -22,7 +22,7 @@
 	if(!on)
 		return
 
-	if(!cell || (cell.charge < (use * CELLRATE)))
+	if(!cell || (cell.charge < (DYNAMIC_W_TO_CELL_UNITS(use, 1))))
 		turn_off(1)
 		return
 
@@ -33,14 +33,13 @@
 			if(on)
 				set_light(brightness_on, brightness_on/2)
 
-	cell.use(use*CELLRATE)
-
+	cell.use(DYNAMIC_W_TO_CELL_UNITS(use, 1))
 
 /// Returns FALSE on failure and TRUE on success.
 /obj/machinery/floodlight/proc/turn_on(loud = FALSE)
 	if(!cell)
 		return FALSE
-	if(cell.charge < (use * CELLRATE))
+	if(cell.charge < (DYNAMIC_W_TO_CELL_UNITS(use, 1)))
 		return FALSE
 
 	on = TRUE
@@ -70,7 +69,7 @@
 /obj/machinery/floodlight/attack_hand(mob/user)
 	if(open && cell)
 		if(ishuman(user))
-			if(!user.get_active_hand())
+			if(!user.get_active_held_item())
 				user.put_in_hands(cell)
 				cell.loc = user.loc
 		else
@@ -120,8 +119,8 @@
 			if(cell)
 				to_chat(user, SPAN_NOTICE("There is a power cell already installed."))
 			else
-				user.drop_item()
-				W.loc = src
+				if(!user.attempt_insert_item_for_installation(W, src))
+					return
 				cell = W
 				to_chat(user, SPAN_NOTICE("You insert the power cell."))
 	update_icon()

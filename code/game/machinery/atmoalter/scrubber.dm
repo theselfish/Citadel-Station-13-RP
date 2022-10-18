@@ -81,7 +81,7 @@
 		last_power_draw = 0
 	else
 		power_draw = max(power_draw, power_losses)
-		cell.use(power_draw * CELLRATE)
+		cell.use_scaled(DYNAMIC_W_TO_CELL_UNITS(power_draw, 1))
 		last_power_draw = power_draw
 
 		update_connected_network()
@@ -232,7 +232,7 @@
 			return
 
 		anchored = !anchored
-		playsound(src.loc, I.usesound, 50, 1)
+		playsound(src.loc, I.tool_sound, 50, 1)
 		to_chat(user, "<span class='notice'>You [anchored ? "wrench" : "unwrench"] \the [src].</span>")
 
 		return

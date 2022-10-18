@@ -9,7 +9,7 @@
 	force = 15
 	sharp = 0
 	edge = 0
-	throwforce = 7
+	throw_force = 7
 	flags = NOCONDUCT
 	w_class = ITEMSIZE_NORMAL
 	drop_sound = 'sound/items/drop/metalweapon.ogg'
@@ -33,41 +33,9 @@
 	return bcell
 
 /obj/item/melee/baton/suicide_act(mob/user)
-	var/datum/gender/TU = gender_datums[user.get_visible_gender()]
+	var/datum/gender/TU = GLOB.gender_datums[user.get_visible_gender()]
 	user.visible_message("<span class='suicide'>\The [user] is putting the live [name] in [TU.his] mouth! It looks like [TU.he] [TU.is] trying to commit suicide.</span>")
 	return (FIRELOSS)
-
-/obj/item/melee/baton/MouseDrop(obj/over_object as obj)
-	if(!canremove)
-		return
-
-	if (ishuman(usr) || issmall(usr)) //so monkeys can take off their backpacks -- Urist
-
-		if (istype(usr.loc,/obj/mecha)) // stops inventory actions in a mech. why?
-			return
-
-		if (!( istype(over_object, /atom/movable/screen) ))
-			return ..()
-
-		//makes sure that the thing is equipped, so that we can't drag it into our hand from miles away.
-		//there's got to be a better way of doing this.
-		if (!(src.loc == usr) || (src.loc && src.loc.loc == usr))
-			return
-
-		if (( usr.restrained() ) || ( usr.stat ))
-			return
-
-		if ((src.loc == usr) && !(istype(over_object, /atom/movable/screen)) && !usr.unEquip(src))
-			return
-
-		switch(over_object.name)
-			if("r_hand")
-				usr.u_equip(src)
-				usr.put_in_r_hand(src)
-			if("l_hand")
-				usr.u_equip(src)
-				usr.put_in_l_hand(src)
-		src.add_fingerprint(usr)
 
 /obj/item/melee/baton/loaded/Initialize(mapload)
 	. = ..()
@@ -115,8 +83,8 @@
 	if(istype(W, /obj/item/cell))
 		if(istype(W, /obj/item/cell/device))
 			if(!bcell)
-				user.drop_item()
-				W.loc = src
+				if(!user.attempt_insert_item_for_installation(W, src))
+					return
 				bcell = W
 				to_chat(user, "<span class='notice'>You install a cell in [src].</span>")
 				update_icon()
@@ -126,7 +94,7 @@
 			to_chat(user, "<span class='notice'>This cell is not fitted for [src].</span>")
 
 /obj/item/melee/baton/attack_hand(mob/user as mob)
-	if(user.get_inactive_hand() == src)
+	if(user.get_inactive_held_item() == src)
 		if(bcell && !integrated_cell)
 			bcell.update_icon()
 			user.put_in_hands(bcell)
@@ -159,7 +127,7 @@
 	add_fingerprint(user)
 
 /obj/item/melee/baton/attack(mob/M, mob/user)
-	if(status && (CLUMSY in user.mutations) && prob(50))
+	if(status && (MUTATION_CLUMSY in user.mutations) && prob(50))
 		to_chat(user, "<span class='danger'>You accidentally hit yourself with the [src]!</span>")
 		user.Weaken(30)
 		deductcharge(hitcost)
@@ -219,10 +187,10 @@
 /obj/item/melee/baton/cattleprod
 	name = "stunprod"
 	desc = "An improvised stun baton."
-	icon_state = "stunprod_nocell"
+	icon_state = "stunprod"
 	item_state = "prod"
 	force = 3
-	throwforce = 5
+	throw_force = 5
 	stunforce = 0
 	agonyforce = 60	//same force as a stunbaton, but uses way more charge.
 	hitcost = 2500
@@ -230,11 +198,13 @@
 	slot_flags = null
 
 /obj/item/melee/baton/cattleprod/attackby(obj/item/W, mob/user)
+	if(use_external_power)
+		return
 	if(istype(W, /obj/item/cell))
 		if(!istype(W, /obj/item/cell/device))
 			if(!bcell)
-				user.drop_item()
-				W.loc = src
+				if(!user.attempt_insert_item_for_installation(W, src))
+					return
 				bcell = W
 				to_chat(user, "<span class='notice'>You install a cell in [src].</span>")
 				update_icon()
@@ -242,6 +212,7 @@
 				to_chat(user, "<span class='notice'>[src] already has a cell.</span>")
 		else
 			to_chat(user, "<span class='notice'>This cell is not fitted for [src].</span>")
+
 	if(istype(W, /obj/item/ore/bluespace_crystal))
 		if(!bcell)
 			var/obj/item/ore/bluespace_crystal/BSC = W
@@ -252,8 +223,6 @@
 			to_chat(user, "<span class='notice'>You place the bluespace crystal firmly into the igniter.</span>")
 		else
 			user.visible_message("<span class='warning'>You can't put the crystal onto the stunprod while it has a power cell installed!</span>")
-	else
-		return ..()
 
 /obj/item/melee/baton/get_description_interaction()
 	var/list/results = list()
@@ -268,12 +237,12 @@
 	return results
 
 /obj/item/melee/baton/cattleprod/teleprod
-	name = "telebaton"
-	desc = "An ."
-	icon_state = "stunprod_nocell"
+	name = "teleprod"
+	desc = "An improvised stun baton with a bluespace crystal attached to the tip."
+	icon_state = "teleprod"
 	item_state = "prod"
 	force = 3
-	throwforce = 5
+	throw_force = 5
 	stunforce = 0
 	agonyforce = 60	//same force as a stunbaton, but uses way more charge.
 	hitcost = 2500
@@ -286,8 +255,6 @@
 		return
 	do_teleport(L, get_turf(L), 15)
 
-/obj/item/melee/baton/cattleprod/attackby(obj/item/I, mob/user, params)//handles sticking a crystal onto a stunprod to make a teleprod
-
 
 // Rare version of a baton that causes lesser lifeforms to really hate the user and attack them.
 /obj/item/melee/baton/shocker
@@ -297,7 +264,7 @@
 	it works like a regular stun baton, just less effectively."
 	icon_state = "shocker"
 	force = 10
-	throwforce = 5
+	throw_force = 5
 	agonyforce = 25 // Less efficent than a regular baton.
 	attack_verb = list("poked")
 
@@ -324,7 +291,7 @@
 	w_class = ITEMSIZE_SMALL
 	force = 5
 	stunforce = 5
-	throwforce = 2
+	throw_force = 2
 	agonyforce = 120	//one-hit
 	integrated_cell = TRUE
 	hitcost = 1150

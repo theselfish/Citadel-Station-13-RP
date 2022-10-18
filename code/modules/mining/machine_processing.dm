@@ -6,7 +6,7 @@
 
 /obj/machinery/mineral/processing_unit_console
 	name = "production machine console"
-	icon = 'icons/obj/machines/mining_machines_vr.dmi' // VOREStation Edit
+	icon = 'icons/obj/machines/mining_machines_vr.dmi'
 	icon_state = "console"
 	density = TRUE
 	anchored = TRUE
@@ -39,20 +39,16 @@
 	if(istype(I, /obj/item/card/id))
 		if(!powered())
 			return
-		if(!inserted_id && user.unEquip(I))
-			I.forceMove(src)
+		if(!inserted_id)
+			if(!user.attempt_insert_item_for_installation(I, src))
+				return
 			inserted_id = I
 			interact(user)
 		return
 	..()
 
-/obj/machinery/mineral/processing_unit_console/interact(mob/user)
-	if(..())
-		return
-
-	if(!allowed(user))
-		to_chat(user, "<span class='warning'>Access denied.</span>")
-		return
+/obj/machinery/mineral/processing_unit_console/ui_interact(mob/user, datum/tgui/ui, datum/tgui/parent_ui)
+	. = ..()
 
 	user.set_machine(src)
 
@@ -130,29 +126,28 @@
 	if(href_list["choice"])
 		if(istype(inserted_id))
 			if(href_list["choice"] == "eject")
-				usr.put_in_hands(inserted_id)
+				usr.grab_item_from_interacted_with(inserted_id, src)
 				inserted_id = null
 			if(href_list["choice"] == "claim")
 				inserted_id.mining_points += machine.points
 				machine.points = 0
 		else if(href_list["choice"] == "insert")
-			var/obj/item/card/id/I = usr.get_active_hand()
+			var/obj/item/card/id/I = usr.get_active_held_item()
 			if(istype(I))
-				usr.drop_item()
-				I.forceMove(src)
+				if(!usr.attempt_insert_item_for_installation(I, src))
+					return
 				inserted_id = I
 			else
 				to_chat(usr, "<span class='warning'>No valid ID.</span>")
 
 	src.updateUsrDialog()
-	return
 
 /**********************Mineral processing unit**************************/
 
 
 /obj/machinery/mineral/processing_unit
 	name = "material processor" //This isn't actually a goddamn furnace, we're in space and it's processing platinum and flammable phoron...
-	icon = 'icons/obj/machines/mining_machines_vr.dmi' // VOREStation Edit
+	icon = 'icons/obj/machines/mining_machines_vr.dmi'
 	icon_state = "furnace"
 	density = TRUE
 	anchored = TRUE
@@ -162,7 +157,7 @@
 	var/obj/machinery/mineral/input = null
 	var/obj/machinery/mineral/output = null
 	var/obj/machinery/mineral/console = null
-	var/sheets_per_tick = 10
+	var/sheets_per_tick = 20
 	var/list/ores_processing = list()
 	var/list/ores_stored = list()
 	var/static/list/alloy_data

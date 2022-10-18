@@ -31,7 +31,7 @@ export const Canister = (props, context) => {
   } = data;
   return (
     <Window
-      width={300}
+      width={350}
       height={275}>
       <Window.Content>
         <Flex direction="column" height="100%">

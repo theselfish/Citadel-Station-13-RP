@@ -27,7 +27,7 @@ var/global/list/grub_machine_overlays = list()
 
 
 	mob_size = MOB_MINISCULE
-	pass_flags = PASSTABLE
+	pass_flags = ATOM_PASS_TABLE
 	can_pull_size = ITEMSIZE_TINY
 	can_pull_mobs = MOB_PULL_NONE
 	density = 0
@@ -78,26 +78,28 @@ var/global/list/grub_machine_overlays = list()
 		QDEL_NULL(machine_effect)
 	return ..()
 
-/mob/living/simple_mob/animal/solargrub_larva/Life()
-	. = ..()
+/mob/living/simple_mob/animal/solargrub_larva/Life(seconds, times_fired)
+	if((. = ..()))
+		return
 
 	if(machine_effect && !istype(loc, /obj/machinery))
 		QDEL_NULL(machine_effect)
 
-	if(!.)	// || ai_inactive
-		return
-
 	if(power_drained >= 7 MEGAWATTS && prob(5))
 		expand_grub()
+		return TRUE
+
+/mob/living/simple_mob/animal/solargrub_larva/PhysicalLife()
+	if((. = ..()))
 		return
 
 	if(istype(loc, /obj/machinery))
-		if(machine_effect && air_master.current_cycle%30)
+		// to anyone who sees me on git blame, i'm not responsible for this shit code ~silicons
+		if(machine_effect && (air_master.current_cycle % 30))
 			for(var/mob/M in player_list)
 				SEND_IMAGE(M, machine_effect)
 		if(prob(10))
 			sparks.start()
-		return
 
 /mob/living/simple_mob/animal/solargrub_larva/attack_target(atom/A)
 	if(istype(A, /obj/machinery) && !istype(A, /obj/machinery/atmospherics/component/unary/vent_pump))

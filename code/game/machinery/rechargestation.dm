@@ -35,8 +35,6 @@
 /obj/machinery/recharge_station/Initialize(mapload, newdir)
 	. = ..()
 	default_apply_parts()
-	RefreshParts()
-
 	update_icon()
 
 /obj/machinery/recharge_station/proc/has_cell_power()
@@ -62,12 +60,10 @@
 	var/recharge_amount = 0
 	if(!(machine_stat & NOPOWER))
 		// Calculating amount of power to draw
-		recharge_amount = (occupant ? restore_power_active : restore_power_passive) * CELLRATE
-
+		recharge_amount = (occupant ? restore_power_active : restore_power_passive)
+		recharge_amount = DYNAMIC_W_TO_CELL_UNITS(recharge_amount, 1)
 		recharge_amount = cell.give(recharge_amount)
-		use_power(recharge_amount / CELLRATE)
-	else
-		cell.use(active_power_usage * CELLRATE)
+		use_power(DYNAMIC_CELL_UNITS_TO_W(recharge_amount, 1))
 
 	if(icon_update_tick >= 10)
 		icon_update_tick = 0
@@ -83,16 +79,16 @@
 		var/mob/living/silicon/robot/R = occupant
 
 		if(R.module)
-			R.module.respawn_consumable(R, charging_power * CELLRATE / 250) //consumables are magical, apparently
+			R.module.respawn_consumable(R, DYNAMIC_W_TO_CELL_UNITS(charging_power, 1) / 250) //consumables are magical, apparently
 		if(R.cell && !R.cell.fully_charged())
-			var/diff = min(R.cell.maxcharge - R.cell.charge, charging_power * CELLRATE) // Capped by charging_power / tick
+			var/diff = min(R.cell.maxcharge - R.cell.charge, DYNAMIC_W_TO_CELL_UNITS(charging_power, 1)) // Capped by charging_power / tick
 			var/charge_used = cell.use(diff)
 			R.cell.give(charge_used)
 
 		//Lastly, attempt to repair the cyborg if enabled
-		if(weld_rate && R.getBruteLoss() && cell.checked_use(weld_power_use * weld_rate * CELLRATE))
+		if(weld_rate && R.getBruteLoss() && cell.checked_use(DYNAMIC_W_TO_CELL_UNITS(weld_power_use * weld_rate, 1)))
 			R.adjustBruteLoss(-weld_rate)
-		if(wire_rate && R.getFireLoss() && cell.checked_use(wire_power_use * wire_rate * CELLRATE))
+		if(wire_rate && R.getFireLoss() && cell.checked_use(DYNAMIC_W_TO_CELL_UNITS(wire_power_use * wire_rate, 1)))
 			R.adjustFireLoss(-wire_rate)
 	else if(ishuman(occupant))
 		var/mob/living/carbon/human/H = occupant
@@ -111,24 +107,23 @@
 			// Also recharge their internal battery.
 			if(H.isSynthetic() && H.nutrition < H.species.max_nutrition)
 				var/needed = clamp(H.species.max_nutrition - H.nutrition, 0, 20)
-				var/drained = cell.use(needed * SYNTHETIC_NUTRITION_CHARGE_RATE)
-				H.nutrition += drained / SYNTHETIC_NUTRITION_CHARGE_RATE
+				var/drained = cell.use(DYNAMIC_KJ_TO_CELL_UNITS(needed * SYNTHETIC_NUTRITION_KJ_PER_UNIT))
+				H.nutrition += DYNAMIC_CELL_UNITS_TO_KJ(drained) / SYNTHETIC_NUTRITION_KJ_PER_UNIT
 
 			// And clear up radiation
 			if(H.radiation > 0)
 				H.radiation = max(H.radiation - rand(5, 15), 0)
-		if(H.wearing_rig) // stepping into a borg charger to charge your rig and fix your shit
-			var/obj/item/rig/wornrig = H.get_rig()
-			if(wornrig) // just to make sure
-				for(var/obj/item/rig_module/storedmod in wornrig)
-					if(weld_rate && storedmod.damage != 0 && cell.checked_use(weld_power_use * weld_rate * CELLRATE))
-						to_chat(H, "<span class='notice'>\The [storedmod] is repaired!</span>")
-						storedmod.damage = 0
-				var/obj/item/cell/rigcell = wornrig.get_cell()
-				if(rigcell)
-					var/diff = min(rigcell.maxcharge - rigcell.charge, charging_power * CELLRATE) // Capped by charging_power / tick
-					var/charge_used = cell.use(diff)
-					rigcell.give(charge_used)
+		var/obj/item/rig/wornrig = H.get_rig()
+		if(wornrig) // just to make sure
+			for(var/obj/item/rig_module/storedmod in wornrig)
+				if(weld_rate && storedmod.damage != 0 && cell.checked_use(DYNAMIC_W_TO_CELL_UNITS(weld_power_use * weld_rate, 1)))
+					to_chat(H, "<span class='notice'>\The [storedmod] is repaired!</span>")
+					storedmod.damage = 0
+			var/obj/item/cell/rigcell = wornrig.get_cell()
+			if(rigcell)
+				var/diff = min(rigcell.maxcharge - rigcell.charge, DYNAMIC_W_TO_CELL_UNITS(charging_power, 1)) // Capped by charging_power / tick
+				var/charge_used = cell.use(diff)
+				rigcell.give(charge_used)
 
 /obj/machinery/recharge_station/examine(mob/user)
 	. = ..()
@@ -170,7 +165,7 @@
 
 	..()
 
-/obj/machinery/recharge_station/MouseDrop_T(mob/target, mob/user)
+/obj/machinery/recharge_station/MouseDroppedOnLegacy(mob/target, mob/user)
 	if(user.stat || user.lying || !Adjacent(user) || !target.Adjacent(user))
 		return
 
@@ -238,8 +233,9 @@
 	go_in(L)
 
 /obj/machinery/recharge_station/proc/go_in(mob/living/L)
-
-	if(occupant)
+	if(!istype(L))
+		return
+	if(occupant || L.buckled)
 		return
 
 	if(istype(L, /mob/living/silicon/robot))

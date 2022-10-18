@@ -76,7 +76,7 @@ var/list/_client_preferences_by_type
 	if(!enabled)
 		SEND_SOUND(preference_mob, sound(null, repeat = 0, wait = 0, volume = 0, channel = 1))
 		SEND_SOUND(preference_mob, sound(null, repeat = 0, wait = 0, volume = 0, channel = 2))
-//VOREStation Add - Need to put it here because it should be ordered riiiight here.
+// Need to put it here because it should be ordered riiiight here.
 /datum/client_preference/play_jukebox
 	description ="Play jukebox music"
 	key = "SOUND_JUKEBOX"
@@ -98,7 +98,7 @@ var/list/_client_preferences_by_type
 	key = "DIGEST_NOISES"
 	enabled_description = "Noisy"
 	disabled_description = "Silent"
-//VOREStation Add End
+
 /datum/client_preference/weather_sounds
 	description ="Weather sounds"
 	key = "SOUND_WEATHER"
@@ -156,6 +156,7 @@ var/list/_client_preferences_by_type
 /datum/client_preference/pickup_sounds
 	description = "Picked Up Item Sounds"
 	key = "SOUND_PICKED"
+
 	enabled_description = "Enabled"
 	disabled_description = "Disabled"
 
@@ -285,6 +286,12 @@ var/list/_client_preferences_by_type
 /datum/client_preference/parallax/toggled(mob/preference_mob, enabled)
 	. = ..()
 	preference_mob?.client?.parallax_holder?.Reset()
+/datum/client_preference/overhead_chat
+	description = "Overhead Chat"
+	key = "OVERHEAD_CHAT"
+	enabled_description = "Show"
+	disabled_description = "Hide"
+	enabled_by_default = TRUE
 
 /********************
 * Staff Preferences *
@@ -354,7 +361,7 @@ var/list/_client_preferences_by_type
 	disabled_description = "Normal Ghost"
 
 
-datum/client_preference/debug/age_verified
+/datum/client_preference/debug/age_verified
 	description = "(Debug) Age Verified Status"
 	key = "AGE_VERIFIED"
 	enabled_description = "TRUE"

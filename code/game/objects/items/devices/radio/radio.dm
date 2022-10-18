@@ -1,6 +1,5 @@
 // Access check is of the type requires one. These have been carefully selected to avoid allowing the janitor to see channels he shouldn't
 GLOBAL_LIST_INIT(default_internal_channels, list(
-//VOREStation Edit Start - Updating this for Virgo
 	num2text(PUB_FREQ) = list(),
 	num2text(AI_FREQ)  = list(access_synth),
 	num2text(ENT_FREQ) = list(),
@@ -576,8 +575,7 @@ GLOBAL_LIST_INIT(default_medbay_channels, list(
 		return -1
 	if(!(0 in level))
 		var/turf/position = get_turf(src)
-		if((!position || !(position.z in level)) && !bluespace_radio) //VOREStation Edit
-			return -1
+		if((!position || !(position.z in level)) && !bluespace_radio)			return -1
 	if(freq in ANTAG_FREQS)
 		if(!(src.syndie))//Checks to see if it's allowed on that frequency, based on the encryption keys
 			return -1
@@ -666,16 +664,14 @@ GLOBAL_LIST_INIT(default_medbay_channels, list(
 		var/datum/robot_component/C = R.components["radio"]
 		R.cell_use_power(C.active_usage)
 
-/obj/item/radio/borg/attackby(obj/item/W as obj, mob/user as mob)
-//	..()
+/obj/item/radio/borg/attackby(obj/item/I, mob/living/user, params, clickchain_flags, damage_multiplier)
 	user.set_machine(src)
-	if (!(W.is_screwdriver() || istype(W, /obj/item/encryptionkey)))
-		return
+	if (!(I.is_screwdriver() || istype(I, /obj/item/encryptionkey)))
+		return ..()
 
-	if(W.is_screwdriver())
+	if(I.is_screwdriver())
+		. = CLICKCHAIN_DO_NOT_PROPAGATE
 		if(keyslot)
-
-
 			for(var/ch_name in channels)
 				radio_controller.remove_object(src, radiochannels[ch_name])
 				secure_radio_connections[ch_name] = null
@@ -689,24 +685,20 @@ GLOBAL_LIST_INIT(default_medbay_channels, list(
 
 			recalculateChannels()
 			to_chat(user, "You pop out the encryption key in the radio!")
-			playsound(src, W.usesound, 50, 1)
+			playsound(src, I.tool_sound, 50, 1)
 
 		else
 			to_chat(user, "This radio doesn't have any encryption keys!")
 
-	if(istype(W, /obj/item/encryptionkey/))
+	if(istype(I, /obj/item/encryptionkey))
+		. = CLICKCHAIN_DO_NOT_PROPAGATE
 		if(keyslot)
 			to_chat(user, "The radio can't hold another key!")
 			return
-
-		if(!keyslot)
-			user.drop_item()
-			W.loc = src
-			keyslot = W
-
+		if(!user.attempt_insert_item_for_installation(I, src))
+			return
+		keyslot = I
 		recalculateChannels()
-
-	return
 
 /obj/item/radio/borg/recalculateChannels()
 	src.channels = list()
@@ -795,7 +787,7 @@ GLOBAL_LIST_INIT(default_medbay_channels, list(
 	item_state = "radiopack"
 	slot_flags = SLOT_BACK
 	force = 5
-	throwforce = 6
+	throw_force = 6
 	preserve_item = 1
 	w_class = ITEMSIZE_LARGE
 	action_button_name = "Remove/Replace Handset"
@@ -819,15 +811,13 @@ GLOBAL_LIST_INIT(default_medbay_channels, list(
 	else
 		..()
 
-/obj/item/bluespace_radio/MouseDrop()
+/obj/item/bluespace_radio/OnMouseDropLegacy()
 	if(ismob(loc))
 		if(!CanMouseDrop(src))
 			return
 		var/mob/M = loc
-		if(!M.unEquip(src))
-			return
 		add_fingerprint(usr)
-		M.put_in_any_hand_if_possible(src)
+		M.put_in_hands(src)
 
 /obj/item/bluespace_radio/attackby(obj/item/W, mob/user, params)
 	if(W == handset)
@@ -861,26 +851,24 @@ GLOBAL_LIST_INIT(default_medbay_channels, list(
 	if(!istype(M))
 		return 0 //not equipped
 
-	if((slot_flags & SLOT_BACK) && M.get_equipped_item(slot_back) == src)
+	if((slot_flags & SLOT_BACK) && M.item_by_slot(SLOT_ID_BACK) == src)
 		return 1
-	if((slot_flags & SLOT_BACK) && M.get_equipped_item(slot_s_store) == src)
+	if((slot_flags & SLOT_BACK) && M.item_by_slot(SLOT_ID_SUIT_STORAGE) == src)
 		return 1
 
 	return 0
 
-/obj/item/bluespace_radio/dropped(mob/user)
-	..()
+/obj/item/bluespace_radio/dropped(mob/user, flags, atom/newLoc)
+	. = ..()
 	reattach_handset(user) //handset attached to a base unit should never exist outside of their base unit or the mob equipping the base unit
 
 /obj/item/bluespace_radio/proc/reattach_handset(mob/user)
-	if(!handset) return
+	if(!handset)
+		return
 
 	if(ismob(handset.loc))
-		var/mob/M = handset.loc
-		if(M.drop_from_inventory(handset, src))
-			to_chat(user, "<span class='notice'>\The [handset] snaps back into the main unit.</span>")
-	else
-		handset.forceMove(src)
+		to_chat(handset.loc, "<span class='notice'>\The [handset] snaps back into the main unit.</span>")
+	handset.forceMove(src)
 
 //Subspace Radio Handset
 /obj/item/radio/bluespace_handset
@@ -908,8 +896,8 @@ GLOBAL_LIST_INIT(default_medbay_channels, list(
 		base_unit = null
 	return ..()
 
-/obj/item/radio/bluespace_handset/linked/dropped(mob/user)
-	..() //update twohanding
+/obj/item/radio/bluespace_handset/linked/dropped(mob/user, flags, atom/newLoc)
+	. = ..() //update twohanding
 	if(base_unit)
 		base_unit.reattach_handset(user) //handset attached to a base unit should never exist outside of their base unit or the mob equipping the base unit
 

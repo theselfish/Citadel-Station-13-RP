@@ -2,24 +2,32 @@
 	name = "unknown"
 	real_name = "unknown"
 	voice_name = "unknown"
-	icon = 'icons/effects/effects.dmi'	//We have an ultra-complex update icons that overlays everything, don't load some stupid random male human
+	icon = 'icons/effects/effects.dmi' //We have an ultra-complex update icons that overlays everything, don't load some stupid random male human
 	icon_state = "nothing"
 
-	var/embedded_flag					//To check if we've need to roll for damage on movement while an item is imbedded in us.
-	var/obj/item/rig/wearing_rig // This is very not good, but it's much much better than calling get_rig() every update_canmove() call.
-	var/last_push_time					//For human_attackhand.dm, keeps track of the last use of disarm
+	/// To check if we've need to roll for damage on movement while an item is imbedded in us.
+	var/embedded_flag
+	/// This is very not good, but it's much much better than calling get_rig() every update_canmove() call.
+	var/obj/item/rig/wearing_rig
+	/// For human_attackhand.dm, keeps track of the last use of disarm.
+	var/last_push_time
 
-	var/spitting = 0 					//Spitting and spitting related things. Any human based ranged attacks, be it innate or added abilities.
-	var/spit_projectile = null			//Projectile type.
-	var/spit_name = null 				//String
-	var/last_spit = 0 					//Timestamp.
+	/// Spitting and spitting related things. Any human based ranged attacks, be it innate or added abilities.
+	var/spitting = 0
+	/// Projectile type.
+	var/spit_projectile = null
+	/// String
+	var/spit_name = null
+	/// Timestamp.
+	var/last_spit = 0
 
-	var/can_defib = 1					//Horrible damage (like beheadings) will prevent defibbing organics.
-	var/active_regen = FALSE //Used for the regenerate proc in human_powers.dm
+	/// Horrible damage (like beheadings) will prevent defibbing organics.
+	var/can_defib = TRUE
+	/// Used for the regenerate proc in human_powers.dm
+	var/active_regen = FALSE
 	var/active_regen_delay = 300
-	var/spam_flag = FALSE	//throws byond:tm: errors if placed in human/emote, but not here
-
-	var/healing = FALSE
+	/// Throws byond:tm: errors if placed in human/emote, but not here.
+	var/spam_flag = FALSE
 
 /mob/living/carbon/human/Initialize(mapload, datum/species/new_species_or_path)
 	if(!dna)
@@ -27,18 +35,18 @@
 		// Species name is handled by set_species()
 
 	if(new_species_or_path)
-		set_species(new_species_or_path)
+		set_species(new_species_or_path, force = TRUE, regen_icons = FALSE)
 	else if(!istype(species))
 		// no one set us yet
 		if(ispath(species))
-			set_species(species)
+			set_species(species, force = TRUE, regen_icons = FALSE)
 		else
-			set_species()
+			set_species(force = TRUE, regen_icons = FALSE)
 
 	if(!species)
 		stack_trace("Why is there no species? Resetting to human.")	// NO NO, YOU DONT GET TO CHICKEN OUT, SET_SPECIES WAS CALLED AND YOU BETTER HAVE ONE
 		// no you don't get to get away
-		set_species(/datum/species/human)
+		set_species(/datum/species/human, force = TRUE, regen_icons = FALSE)
 
 	real_name = species.get_random_name(gender)
 	name = real_name
@@ -65,12 +73,25 @@
 
 	init_world_bender_hud()
 
+	if(mapload)
+		return INITIALIZE_HINT_LATELOAD
+
+	// rebuild everything
+	regenerate_icons()
+	update_transform()
+
+//! WARNING SHITCODE REMOVE LATER
+/mob/living/carbon/human/LateInitialize()
+	. = ..()
+	regenerate_icons()
+	update_transform()
+
 /mob/living/carbon/human/Destroy()
 	human_mob_list -= src
 	for(var/organ in organs)
 		qdel(organ)
-	QDEL_NULL(nif)	//VOREStation Add
-	QDEL_LIST_NULL(vore_organs) //VOREStation Add
+	QDEL_NULL(nif)
+	QDEL_LIST_NULL(vore_organs)
 	cleanup_world_bender_hud()
 	return ..()
 
@@ -136,10 +157,10 @@
 				return
 			else
 				var/atom/target = get_edge_target_turf(src, get_dir(src, get_step_away(src, src)))
-				throw_at(target, 200, 4)
+				throw_at_old(target, 200, 4)
 			//return
 //				var/atom/target = get_edge_target_turf(user, get_dir(src, get_step_away(user, src)))
-				//user.throw_at(target, 200, 4)
+				//user.throw_at_old(target, 200, 4)
 
 		if (2.0)
 			if (!shielded)
@@ -214,55 +235,6 @@
 /mob/living/carbon/human/var/co2overloadtime = null
 /mob/living/carbon/human/var/temperature_resistance = T0C+75
 
-
-/mob/living/carbon/human/show_inv(mob/user as mob)
-	if(user.incapacitated()  || !user.Adjacent(src))
-		return
-
-	var/obj/item/clothing/under/suit = null
-	if (istype(w_uniform, /obj/item/clothing/under))
-		suit = w_uniform
-
-	user.set_machine(src)
-	var/dat = "<B><HR><FONT size=3>[name]</FONT></B><BR><HR>"
-
-	for(var/entry in species.hud.gear)
-		var/list/slot_ref = species.hud.gear[entry]
-		if((slot_ref["slot"] in list(slot_l_store, slot_r_store)))
-			continue
-		var/obj/item/thing_in_slot = get_equipped_item(slot_ref["slot"])
-		dat += "<BR><B>[slot_ref["name"]]:</b> <a href='?src=\ref[src];item=[slot_ref["slot"]]'>[istype(thing_in_slot) ? thing_in_slot : "nothing"]</a>"
-
-	dat += "<BR><HR>"
-
-	if(species.hud.has_hands)
-		dat += "<BR><b>Left hand:</b> <A href='?src=\ref[src];item=[slot_l_hand]'>[istype(l_hand) ? l_hand : "nothing"]</A>"
-		dat += "<BR><b>Right hand:</b> <A href='?src=\ref[src];item=[slot_r_hand]'>[istype(r_hand) ? r_hand : "nothing"]</A>"
-
-	// Do they get an option to set internals?
-	if(istype(wear_mask, /obj/item/clothing/mask) || istype(head, /obj/item/clothing/head/helmet/space))
-		if(istype(back, /obj/item/tank) || istype(belt, /obj/item/tank) || istype(s_store, /obj/item/tank))
-			dat += "<BR><A href='?src=\ref[src];item=internals'>Toggle internals.</A>"
-
-	// Other incidentals.
-	if(istype(suit) && suit.has_sensor == 1)
-		dat += "<BR><A href='?src=\ref[src];item=sensors'>Set sensors</A>"
-	if(handcuffed)
-		dat += "<BR><A href='?src=\ref[src];item=[slot_handcuffed]'>Handcuffed</A>"
-	if(legcuffed)
-		dat += "<BR><A href='?src=\ref[src];item=[slot_legcuffed]'>Legcuffed</A>"
-
-	if(suit && LAZYLEN(suit.accessories))
-		dat += "<BR><A href='?src=\ref[src];item=tie'>Remove accessory</A>"
-	dat += "<BR><A href='?src=\ref[src];item=splints'>Remove splints</A>"
-	dat += "<BR><A href='?src=\ref[src];item=pockets'>Empty pockets</A>"
-	dat += "<BR><A href='?src=\ref[user];refresh=1'>Refresh</A>"
-	dat += "<BR><A href='?src=\ref[user];mach_close=mob[name]'>Close</A>"
-
-	user << browse(dat, text("window=mob[name];size=340x540"))
-	onclose(user, "mob[name]")
-	return
-
 // called when something steps onto a human
 // this handles mobs on fire - mulebot and vehicle code has been relocated to /mob/living/Crossed()
 /mob/living/carbon/human/Crossed(var/atom/movable/AM)
@@ -271,8 +243,6 @@
 		return
 
 	spread_fire(AM)
-
-	..() // call parent because we moved behavior to parent
 
 // Get rank from ID, ID inside PDA, PDA, ID in wallet, etc.
 /mob/living/carbon/human/proc/get_authentification_rank(var/if_no_id = "No id", var/if_no_job = "No job")
@@ -336,7 +306,7 @@
 //Returns "Unknown" if facially disfigured and real_name if not. Useful for setting name when polyacided or when updating a human's name variable
 /mob/living/carbon/human/proc/get_face_name()
 	var/obj/item/organ/external/head = get_organ(BP_HEAD)
-	if(!head || head.disfigured || head.is_stump() || !real_name || (HUSK in mutations) )	//disfigured. use id-name if possible
+	if(!head || head.disfigured || head.is_stump() || !real_name || (MUTATION_HUSK in mutations) )	//disfigured. use id-name if possible
 		return "Unknown"
 	return real_name
 
@@ -381,31 +351,14 @@
 
 	return ..(shock_damage, source, siemens_coeff, def_zone)
 
-
 /mob/living/carbon/human/Topic(href, href_list)
-
-	if (href_list["refresh"])
-		if(ismob(machine) && in_range(src, usr))
-			// hi, if you see me on git blame, trust me, this code is dumb
-			// but what came before was dumber
-			// whoever wrote this initially can go to hell, who the fuck in their right mind uses
-			// "machine"  for a mob?
-			// it makes no sense, fuck you, get bent.
-			var/mob/M = machine
-			M.show_inv(usr)
-
 	if (href_list["mach_close"])
 		var/t1 = text("window=[]", href_list["mach_close"])
 		unset_machine()
 		src << browse(null, t1)
 
-	if(href_list["item"])
-		handle_strip(href_list["item"],usr)
-
-	// VOREStation Start
 	if(href_list["ooc_notes"])
 		src.Examine_OOC()
-	// VOREStation End
 
 	if (href_list["criminal"])
 		if(hasHUD(usr,"security"))
@@ -659,7 +612,7 @@
 				src << browse(null, "window=flavor_changes")
 				return
 			if("general")
-				var/msg = sanitize(input(usr,"Update the general description of your character. This will be shown regardless of clothing.","Flavor Text",html_decode(flavor_texts[href_list["flavor_change"]])) as message, extra = 0)	//VOREStation Edit: separating out OOC notes
+				var/msg = sanitize(input(usr,"Update the general description of your character. This will be shown regardless of clothing.","Flavor Text",html_decode(flavor_texts[href_list["flavor_change"]])) as message, extra = 0)
 				flavor_texts[href_list["flavor_change"]] = msg
 				return
 			else
@@ -733,39 +686,47 @@
 
 	return 1
 
-/mob/living/carbon/human/IsAdvancedToolUser(var/silent)
-	// VOREstation start
+/mob/living/carbon/human/IsAdvancedToolUser(silent)
 	if(feral)
 		to_chat(src, "<span class='warning'>Your primitive mind can't grasp the concept of that thing.</span>")
 		return 0
-	// VOREstation end
 	if(species.has_fine_manipulation)
 		return 1
 	if(!silent)
 		to_chat(src, "<span class='warning'>You don't have the dexterity to use that!</span>")
 	return 0
 
-/mob/living/carbon/human/abiotic(var/full_body = 0)
-	if(full_body && ((src.l_hand && !( src.l_hand.abstract )) || (src.r_hand && !( src.r_hand.abstract )) || (src.back || src.wear_mask || src.head || src.shoes || src.w_uniform || src.wear_suit || src.glasses || src.l_ear || src.r_ear || src.gloves)))
-		return 1
-
-	if( (src.l_hand && !src.l_hand.abstract) || (src.r_hand && !src.r_hand.abstract) )
-		return 1
-
-	return 0
-
+/mob/living/carbon/human/abiotic(full_body)
+	if(full_body)
+		if(item_considered_abiotic(head))
+			return TRUE
+		if(item_considered_abiotic(w_uniform))
+			return TRUE
+		if(item_considered_abiotic(wear_suit))
+			return TRUE
+		if(item_considered_abiotic(glasses))
+			return TRUE
+		if(item_considered_abiotic(l_ear))
+			return TRUE
+		if(item_considered_abiotic(shoes))
+			return TRUE
+		if(item_considered_abiotic(gloves))
+			return TRUE
+	return ..()
 
 /mob/living/carbon/human/proc/check_dna()
 	dna.check_integrity(src)
-	return
 
-/mob/living/carbon/human/get_species_name()
+/mob/living/carbon/human/get_species_name(examine)
 	// no more species check, if we runtime, fuck you, fix your bugs.
-	return species.name
+	return examine? species.get_examine_name() : species.get_display_name()
+
+/mob/living/carbon/human/get_true_species_name()
+	return species.get_true_name()
 
 /mob/living/carbon/human/proc/play_xylophone()
 	if(!src.xylophone)
-		var/datum/gender/T = gender_datums[get_visible_gender()]
+		var/datum/gender/T = GLOB.gender_datums[get_visible_gender()]
 		visible_message("<font color='red'>\The [src] begins playing [T.his] ribcage like a xylophone. It's quite spooky.</font>","<font color=#4F49AF>You begin to play a spooky refrain on your ribcage.</font>","<font color='red'>You hear a spooky xylophone melody.</font>")
 		var/song = pick('sound/effects/xylophone1.ogg','sound/effects/xylophone2.ogg','sound/effects/xylophone3.ogg')
 		playsound(loc, song, 50, 1, -1)
@@ -788,7 +749,7 @@
 	set name = "Morph"
 	set category = "Superpower"
 
-	if(!(mMorph in mutations))
+	if(!(MUTATION_MORPH in mutations))
 		src.verbs -= /mob/living/carbon/human/proc/morph
 		return
 
@@ -851,14 +812,14 @@
 			gender = NEUTER
 	regenerate_icons()
 	check_dna()
-	var/datum/gender/T = gender_datums[get_visible_gender()]
+	var/datum/gender/T = GLOB.gender_datums[get_visible_gender()]
 	visible_message("<font color=#4F49AF>\The [src] morphs and changes [T.his] appearance!</font>", "<font color=#4F49AF>You change your appearance!</font>", "<font color='red'>Oh, god!  What the hell was that?  It sounded like flesh getting squished and bone ground into a different shape!</font>")
 
 /mob/living/carbon/human/proc/remotesay()
 	set name = "Project mind"
 	set category = "Superpower"
 
-	if(!(mRemotetalk in src.mutations))
+	if(!(MUTATION_REMOTE_TALK in src.mutations))
 		src.verbs -= /mob/living/carbon/human/proc/remotesay
 		return
 
@@ -870,7 +831,7 @@
 		return
 
 	var/say = sanitize(input("What do you wish to say"))
-	if(mRemotetalk in target.mutations)
+	if(MUTATION_REMOTE_TALK in target.mutations)
 		target.show_message("<font color=#4F49AF> You hear [src.real_name]'s voice: [say]</font>")
 	else
 		target.show_message("<font color=#4F49AF> You hear a voice that seems to echo around the room: [say]</font>")
@@ -888,7 +849,7 @@
 		reset_perspective()
 		return
 
-	if(!(mRemote in src.mutations))
+	if(!(MUTATION_REMOTE_VIEW in src.mutations))
 		remoteview_target = null
 		reset_perspective()
 		src.verbs -= /mob/living/carbon/human/proc/remoteobserve
@@ -948,13 +909,12 @@
 						H.brainmob.mind.transfer_to(src)
 						qdel(H)
 
-	// Vorestation Addition - reapply markings/appearance from prefs for player mobs
+	// Reapply markings/appearance from prefs for player mobs
 	if(client) //just to be sure
 		client.prefs.copy_to(src)
 		if(dna)
 			dna.ResetUIFrom(src)
 			sync_organ_dna()
-	// end vorestation addition
 
 	for (var/ID in virus2)
 		var/datum/disease2/disease/V = virus2[ID]
@@ -1104,8 +1064,8 @@
 
 	if(usr.stat || usr.restrained() || !isliving(usr)) return
 
-	var/datum/gender/TU = gender_datums[usr.get_visible_gender()]
-	var/datum/gender/T = gender_datums[get_visible_gender()]
+	var/datum/gender/TU = GLOB.gender_datums[usr.get_visible_gender()]
+	var/datum/gender/T = GLOB.gender_datums[get_visible_gender()]
 
 	if(usr == src)
 		self = 1
@@ -1138,9 +1098,9 @@
  * - regen_icons - immediately update icons?
  * - force - change even if we are already that species **by type**
  * - skip - skip most ops that aren't apply or remove which are required for instance cleanup. do not do this unless you absolutely know what you are doing.
- * - example - dumbshit argument used for vore transformations to copy necessary data, why tf is this not done in the vore module? TODO: REMOVE.
+ * - example - dumbshit argument used for vore transformations to copy necessary data, why tf is this not done in the vore module? //TODO: REMOVE.
  */
-/mob/living/carbon/human/proc/set_species(datum/species/species_or_path, regen_icons = TRUE, force = FALSE, skip, mob/living/carbon/human/example)	//VOREStation Edit - send an example
+/mob/living/carbon/human/proc/set_species(datum/species/species_or_path, regen_icons = TRUE, force = FALSE, skip, mob/living/carbon/human/example)
 	// check if we need to
 	if(!force && species_or_path)
 		if(istype(species, istype(species_or_path)? species_or_path.type : species_or_path))
@@ -1188,6 +1148,17 @@
 	// i seriously hate vorecode
 	species.on_apply(src)
 
+	// set our has hands
+	has_hands = (species && species.hud)? species.hud.has_hands : TRUE
+
+	// until we unfuck hud datums, this will force reload our entire hud
+	if(hud_used)
+		qdel(hud_used) //remove the hud objects
+	hud_used = new /datum/hud(src)
+	// todo: this is awful lol
+	if(plane_holder && client)
+		client.screen |= plane_holder.plane_masters
+
 	// skip the rest
 	if(skip)
 		return
@@ -1195,7 +1166,7 @@
 	species.create_organs(src)
 	species.create_blood(src)
 	species.handle_post_spawn(src)
-	species.update_attack_types() //VOREStation Edit - Required for any trait that updates unarmed_types in setup.
+	species.update_attack_types() // Required for any trait that updates unarmed_types in setup.
 
 	// Rebuild the HUD. If they aren't logged in then login() should reinstantiate it for them.
 	update_hud()
@@ -1210,7 +1181,7 @@
 			descriptors[desctype] = descriptor.default_value
 
 	// dumb shit transformation shit here
-	if(example)						//VOREStation Edit begin
+	if(example)
 		if(!(example == src))
 			r_skin = example.r_skin
 			g_skin = example.g_skin
@@ -1252,7 +1223,7 @@
 		return
 
 	var/num_doodles = 0
-	for (var/obj/effect/decal/cleanable/blood/writing/W in T)
+	for (var/obj/effect/debris/cleanable/blood/writing/W in T)
 		num_doodles++
 	if (num_doodles > 4)
 		to_chat(src, "<span class='warning'>There is no space to write on!</span>")
@@ -1270,7 +1241,7 @@
 			message += "-"
 			to_chat(src, "<span class='warning'>You ran out of blood to write with!</span>")
 
-		var/obj/effect/decal/cleanable/blood/writing/W = new(T)
+		var/obj/effect/debris/cleanable/blood/writing/W = new(T)
 		W.basecolor = (hand_blood_color) ? hand_blood_color : "#A10808"
 		W.update_icon()
 		W.message = message
@@ -1462,16 +1433,11 @@
 		to_chat(S, "<span class='danger'>[U] pops your [current_limb.joint] back in!</span>")
 	current_limb.relocate()
 
-/mob/living/carbon/human/drop_from_inventory(var/obj/item/W, var/atom/Target = null)
-	if(W in organs)
-		return
-	..()
-
 /mob/living/carbon/human/Check_Shoegrip()
 	if(shoes && (shoes.clothing_flags & NOSLIP) && istype(shoes, /obj/item/clothing/shoes/magboots))  //magboots + dense_object = no floating
 		return 1
-	if(flying) //VOREStation Edit. Checks to see if they have wings and are flying.
-		return 1 //VOREStation Edit.
+	if(flying) // Checks to see if they have wings and are flying.
+		return 1
 	return 0
 
 /mob/living/carbon/human/can_stand_overridden()
@@ -1557,28 +1523,30 @@
 
 /mob/living/carbon/human/proc/update_icon_special() //For things such as teshari hiding and whatnot.
 	if(status_flags & HIDING) // Hiding? Carry on.
-		if(stat == DEAD || paralysis || weakened || stunned || restrained() || buckled || LAZYLEN(grabbed_by) || has_buckled_mobs()) //stunned/knocked down by something that isn't the rest verb? Note: This was tried with INCAPACITATION_STUNNED, but that refused to work. //VORE EDIT: Check for has_buckled_mobs() (taur riding)
+		// Stunned/knocked down by something that isn't the rest verb? Note: This was tried with INCAPACITATION_STUNNED, but that refused to work.
+		if(stat == DEAD || paralysis || weakened || stunned || restrained() || buckled || LAZYLEN(grabbed_by) || has_buckled_mobs())
 			reveal(null)
 		else
 			set_base_layer(HIDING_LAYER)
 
+/**
+ * Shows species in tooltips and examine.
+ *
+ * Get custom species name if set, otherwise use the species name
+ * Beepboops get extra special text based on gender if obviously beepboop
+ * Else species name
+ */
 /mob/living/carbon/human/proc/get_display_species()
-	//Shows species in tooltip
-	if(src.custom_species) //VOREStation Add
-		return custom_species //VOREStation Add
-	//Beepboops get special text if obviously beepboop
-	if(looksSynthetic())
-		if(gender == MALE)
-			return "Android"
-		else if(gender == FEMALE)
-			return "Gynoid"
+	var/species_name = src.custom_species ? custom_species : species.get_examine_name()
+	switch(gender) //Not identifying_gender as this is relating to physical traits.
+		if(MALE)
+			return "[looksSynthetic() ? "[species_name] Android" : species_name]"
+		if(FEMALE)
+			return "[looksSynthetic() ? "[species_name] Gynoid" : species_name]"
+		if(NEUTER, PLURAL)
+			return "[looksSynthetic() ? "Synthetic [species_name]" : species_name]"
 		else
-			return "Synthetic"
-	//Else species name
-	if(species)
-		return species.get_examine_name()
-	//Else CRITICAL FAILURE!
-	return ""
+			return SPAN_WARNING("Unknown")
 
 /mob/living/carbon/human/get_nametag_name(mob/user)
 	return name //Could do fancy stuff here?
@@ -1641,9 +1609,9 @@
 	var/needed = (species.max_nutrition - nutrition)
 	if(needed <= 0)
 		return
-	var/got = min((amount / SYNTHETIC_NUTRITION_CHARGE_RATE), needed)
+	var/got = min((((amount * GLOB.cellrate) / SYNTHETIC_NUTRITION_KJ_PER_UNIT) * SYNTHETIC_NUTRITION_INDUCER_CHEAT_FACTOR), needed)
 	adjust_nutrition(got)
-	return got * SYNTHETIC_NUTRITION_CHARGE_RATE
+	return (got * SYNTHETIC_NUTRITION_KJ_PER_UNIT) / GLOB.cellrate / SYNTHETIC_NUTRITION_INDUCER_CHEAT_FACTOR
 
 /mob/living/carbon/human/can_wield_item(obj/item/W)
 	//Since teshari are small by default, they have different logic to allow them to use certain guns despite that.
@@ -1667,3 +1635,22 @@
 	if(istype(gloves, /obj/item/clothing/gloves/gauntlets/rig))
 		return 2
 	return ..()
+
+/mob/living/carbon/human/check_obscured_slots()
+	. = ..()
+	if(wear_suit)
+		if(wear_suit.flags_inv & HIDEGLOVES)
+			LAZYOR(., SLOT_GLOVES)
+		if(wear_suit.flags_inv & HIDEJUMPSUIT)
+			LAZYOR(., SLOT_ICLOTHING)
+		if(wear_suit.flags_inv & HIDESHOES)
+			LAZYOR(., SLOT_FEET)
+
+//! Pixel Offsets
+/mob/living/carbon/human/get_centering_pixel_x_offset(dir, atom/aligning)
+	. = ..()
+	// uh oh stinky
+	if(!isTaurTail(tail_style) || !(dir & (EAST|WEST)))
+		return
+	// groan
+	. += ((size_multiplier * icon_scale_x) - 1) * ((dir & EAST)? -16 : 16)

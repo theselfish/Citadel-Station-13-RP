@@ -72,7 +72,7 @@
 	update_icon()
 
 /obj/item/reagent_containers/glass/attack(mob/M as mob, mob/user as mob, def_zone)
-	if(force && !(flags & NOBLUDGEON) && user.a_intent == INTENT_HARM)
+	if(force && !(item_flags & ITEM_NOBLUDGEON) && user.a_intent == INTENT_HARM)
 		return	..()
 
 	if(standard_feed_mob(user, M))
@@ -158,12 +158,12 @@
 /obj/item/reagent_containers/glass/beaker/on_reagent_change()
 	update_icon()
 
-/obj/item/reagent_containers/glass/beaker/pickup(mob/user)
-	..()
+/obj/item/reagent_containers/glass/beaker/pickup(mob/user, flags, atom/oldLoc)
+	. = ..()
 	update_icon()
 
-/obj/item/reagent_containers/glass/beaker/dropped(mob/user)
-	..()
+/obj/item/reagent_containers/glass/beaker/dropped(mob/user, flags, atom/newLoc)
+	. = ..()
 	update_icon()
 
 /obj/item/reagent_containers/glass/beaker/attack_hand()
@@ -239,6 +239,9 @@
 /obj/item/reagent_containers/glass/beaker/sulphuric
 	prefill = list("sacid" = 60)
 
+/obj/item/reagent_containers/glass/beaker/neurotoxin
+	prefill = list("neurotoxin" = 50)
+
 /obj/item/reagent_containers/glass/bucket
 	desc = "It's a bucket."
 	name = "bucket"
@@ -260,29 +263,25 @@
 	if(isprox(D))
 		to_chat(user, "You add [D] to [src].")
 		qdel(D)
-		user.put_in_hands(new /obj/item/bucket_sensor)
-		user.drop_from_inventory(src)
+		user.put_in_hands_or_drop(new /obj/item/bucket_sensor)
 		qdel(src)
 		return
 	else if(D.is_wirecutter())
 		to_chat(user, "<span class='notice'>You cut a big hole in \the [src] with \the [D].  It's kinda useless as a bucket now.</span>")
-		user.put_in_hands(new /obj/item/clothing/head/helmet/bucket)
-		user.drop_from_inventory(src)
+		user.put_in_hands_or_drop(new /obj/item/clothing/head/helmet/bucket)
 		qdel(src)
 		return
 	else if(istype(D, /obj/item/stack/material) && D.get_material_name() == MAT_STEEL)
 		var/obj/item/stack/material/M = D
 		if (M.use(1))
-			var/obj/item/secbot_assembly/edCLN_assembly/B = new /obj/item/secbot_assembly/edCLN_assembly
-			B.loc = get_turf(src)
+			var/obj/item/secbot_assembly/edCLN_assembly/B = new /obj/item/secbot_assembly/edCLN_assembly(get_turf(src))
 			to_chat(user, "<span class='notice'>You armed the robot frame.</span>")
-			if (user.get_inactive_hand()==src)
-				user.remove_from_mob(src)
-				user.put_in_inactive_hand(B)
+			user.temporarily_remove_from_inventory(src, INV_OP_FORCE | INV_OP_SHOULD_NOT_INTERCEPT | INV_OP_SILENT)
+			user.put_in_active_hand(B)
 			qdel(src)
 		else
 			to_chat(user, "<span class='warning'>You need one sheet of metal to arm the robot frame.</span>")
-	else if(istype(D, /obj/item/mop) || istype(D, /obj/item/soap) || istype(D, /obj/item/reagent_containers/glass/rag))  //VOREStation Edit - "Allows soap and rags to be used on buckets"
+	else if(istype(D, /obj/item/mop) || istype(D, /obj/item/soap) || istype(D, /obj/item/reagent_containers/glass/rag))
 		if(reagents.total_volume < 1)
 			to_chat(user, "<span class='warning'>\The [src] is empty!</span>")
 		else
@@ -298,7 +297,7 @@
 		var/image/lid = image(icon, src, "lid_[initial(icon_state)]")
 		overlays += lid
 
-obj/item/reagent_containers/glass/bucket/wood
+/obj/item/reagent_containers/glass/bucket/wood
 	desc = "An old wooden bucket."
 	name = "wooden bucket"
 	icon = 'icons/obj/janitor.dmi'
@@ -321,7 +320,6 @@ obj/item/reagent_containers/glass/bucket/wood
 	else if(istype(D, /obj/item/material/knife/machete/hatchet))
 		to_chat(user, "<span class='notice'>You cut a big hole in \the [src] with \the [D].  It's kinda useless as a bucket now.</span>")
 		user.put_in_hands(new /obj/item/clothing/head/helmet/bucket/wood)
-		user.drop_from_inventory(src)
 		qdel(src)
 		return
 	else if(istype(D, /obj/item/mop))
@@ -382,3 +380,56 @@ obj/item/reagent_containers/glass/bucket/wood
 	matter = list("metal" = 500)
 	w_class = ITEMSIZE_TINY
 	volume = 20
+
+//Vials
+/obj/item/reagent_containers/glass/beaker/vial/bicaridine
+	name = "vial (bicaridine)"
+	prefill = list("bicaridine" = 30)
+
+/obj/item/reagent_containers/glass/beaker/vial/dylovene
+	name = "vial (dylovene)"
+	prefill = list("dylovene" = 30)
+
+/obj/item/reagent_containers/glass/beaker/vial/dermaline
+	name = "vial (dermaline)"
+	prefill = list("dermaline" = 30)
+
+/obj/item/reagent_containers/glass/beaker/vial/kelotane
+	name = "vial (kelotane)"
+	prefill = list("kelotane" = 30)
+
+/obj/item/reagent_containers/glass/beaker/vial/inaprovaline
+	name = "vial (inaprovaline)"
+	prefill = list("inaprovaline" = 30)
+
+/obj/item/reagent_containers/glass/beaker/vial/dexalin
+	name = "vial (dexalin)"
+	prefill = list("dexalin" = 30)
+
+/obj/item/reagent_containers/glass/beaker/vial/dexalinplus
+	name = "vial (dexalinp)"
+	prefill = list("dexalinp" = 30)
+
+/obj/item/reagent_containers/glass/beaker/vial/tricordrazine
+	name = "vial (tricordrazine)"
+	prefill = list("tricordrazine" = 30)
+
+/obj/item/reagent_containers/glass/beaker/vial/alkysine
+	name = "vial (alkysine)"
+	prefill = list("alkysine" = 30)
+
+/obj/item/reagent_containers/glass/beaker/vial/imidazoline
+	name = "vial (imidazoline)"
+	prefill = list("imidazoline" = 30)
+
+/obj/item/reagent_containers/glass/beaker/vial/peridaxon
+	name = "vial (peridaxon)"
+	prefill = list("peridaxon" = 30)
+
+/obj/item/reagent_containers/glass/beaker/vial/hyronalin
+	name = "vial (hyronalin)"
+	prefill = list("hyronalin" = 30)
+
+/obj/item/reagent_containers/glass/beaker/vial/neuratrextate
+	name = "vial (neuratrextate)"
+	prefill = list("neuratrextate" = 30)

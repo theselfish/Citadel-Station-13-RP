@@ -148,10 +148,8 @@
 		return
 	if(seed && seed.get_trait(TRAIT_JUICY) == 2)
 		if(istype(M))
-
 			if(M.buckled)
 				return
-
 			if(istype(M,/mob/living/carbon/human))
 				var/mob/living/carbon/human/H = M
 				if(H.shoes && H.shoes.clothing_flags & NOSLIP)
@@ -164,9 +162,7 @@
 			M.Stun(8)
 			M.Weaken(5)
 			seed.thrown_at(src,M)
-			sleep(-1)
-			if(src)
-				qdel(src)
+			qdel(src)
 			return
 
 /obj/item/reagent_containers/food/snacks/grown/throw_impact(atom/hit_atom)
@@ -258,8 +254,7 @@
 		if(prob(35))
 			if(user)
 				to_chat(user, "<span class='danger'>\The [src] has fallen to bits.</span>")
-				user.drop_from_inventory(src)
-			qdel(src)
+				qdel(src)
 
 /obj/item/reagent_containers/food/snacks/grown/attack_self(mob/user as mob)
 
@@ -310,7 +305,7 @@
 				return
 	*/
 
-/obj/item/reagent_containers/food/snacks/grown/pickup(mob/user)
+/obj/item/reagent_containers/food/snacks/grown/pickup(mob/user, flags, atom/oldLoc)
 	..()
 	if(!seed)
 		return

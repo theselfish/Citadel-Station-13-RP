@@ -58,14 +58,13 @@ GLOBAL_LIST_INIT(possible_cable_coil_colours, list(
 	color = COLOR_RED
 	var/obj/machinery/power/breakerbox/breaker_box
 
-/obj/structure/cable/drain_power(var/drain_check, var/surge, var/amount = 0)
-	if(drain_check)
-		return 1
-
+/obj/structure/cable/drain_energy(datum/actor, amount, flags)
 	if(!powernet)
 		return 0
+	return powernet.drain_energy_handler(actor, amount, flags)
 
-	return powernet.draw_power(amount)
+/obj/structure/cable/can_drain_energy(datum/actor, flags)
+	return TRUE
 
 /obj/structure/cable/Initialize(mapload, _color, _d1, _d2, auto_merge)
 	. = ..()
@@ -131,11 +130,10 @@ GLOBAL_LIST_INIT(possible_cable_coil_colours, list(
 // Ghost examining the cable -> tells him the power
 /obj/structure/cable/attack_ghost(mob/user)
 	. = ..()
-	if(user.client && user.client.inquisitive_ghost)
-		user.examinate(src)
+	if(user.client?.inquisitive_ghost)
 		// following code taken from attackby (multitool)
 		if(powernet && (powernet.avail > 0))
-			to_chat(user, "<span class='warning'>[powernet.avail]W in power network.</span>")
+			to_chat(user, "<span class='warning'>[render_power(powernet.avail, ENUM_POWER_SCALE_KILO, ENUM_POWER_UNIT_WATT)] in power network.</span>")
 		else
 			to_chat(user, "<span class='warning'>The cable is not powered.</span>")
 
@@ -249,7 +247,7 @@ GLOBAL_LIST_INIT(possible_cable_coil_colours, list(
 	else if(istype(W, /obj/item/multitool))
 
 		if(powernet && (powernet.avail > 0))		// is it powered?
-			to_chat(user, "<span class='warning'>[powernet.avail]W in power network.</span>")
+			to_chat(user, "<span class='warning'>[render_power(powernet.avail, ENUM_POWER_SCALE_KILO, ENUM_POWER_UNIT_WATT)] in power network.</span>")
 
 		else
 			to_chat(user, "<span class='warning'>The cable is not powered.</span>")
@@ -290,7 +288,7 @@ GLOBAL_LIST_INIT(possible_cable_coil_colours, list(
 				qdel(src)
 	return
 
-obj/structure/cable/proc/cableColor(var/colorC)
+/obj/structure/cable/proc/cableColor(colorC)
 	var/color_n = "#DD0000"
 	if(colorC)
 		color_n = colorC
@@ -525,7 +523,7 @@ obj/structure/cable/proc/cableColor(var/colorC)
 	max_amount = MAXCOIL
 	color = COLOR_RED
 	desc = "A coil of power cable."
-	throwforce = 10
+	throw_force = 10
 	w_class = ITEMSIZE_SMALL
 	throw_speed = 2
 	throw_range = 5
@@ -546,7 +544,7 @@ obj/structure/cable/proc/cableColor(var/colorC)
 	charge_costs = list(1)
 
 /obj/item/stack/cable_coil/suicide_act(mob/user)
-	var/datum/gender/TU = gender_datums[user.get_visible_gender()]
+	var/datum/gender/TU = GLOB.gender_datums[user.get_visible_gender()]
 	if(locate(/obj/item/stool) in user.loc)
 		user.visible_message("<span class='suicide'>[user] is making a noose with the [src.name]! It looks like [TU.he] [TU.is] trying to commit suicide.</span>")
 	else
@@ -956,7 +954,7 @@ obj/structure/cable/proc/cableColor(var/colorC)
 	amount = MAXCOIL
 	max_amount = MAXCOIL
 	color = COLOR_SILVER
-	throwforce = 10
+	throw_force = 10
 	w_class = ITEMSIZE_SMALL
 	throw_speed = 2
 	throw_range = 5
@@ -964,7 +962,7 @@ obj/structure/cable/proc/cableColor(var/colorC)
 	slot_flags = SLOT_BELT
 	attack_verb = list("whipped", "lashed", "disciplined", "flogged")
 	stacktype = null
-	toolspeed = 0.25
+	tool_speed = 0.25
 
 /obj/item/stack/cable_coil/alien/Initialize(mapload, new_amount, merge, param_color)
 	. = ..()
@@ -994,7 +992,7 @@ obj/structure/cable/proc/cableColor(var/colorC)
 
 
 /obj/item/stack/cable_coil/alien/attack_hand(mob/user as mob)
-	if (user.get_inactive_hand() == src)
+	if (user.get_inactive_held_item() == src)
 		var/N = input("How many units of wire do you want to take from [src]?  You can only take up to [amount] at a time.", "Split stacks", 1) as num|null
 		if(N && N <= amount)
 			var/obj/item/stack/cable_coil/CC = new/obj/item/stack/cable_coil(user.loc)

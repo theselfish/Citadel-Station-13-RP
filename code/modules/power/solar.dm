@@ -27,8 +27,8 @@ GLOBAL_LIST_EMPTY(solars_list)
 	var/turn_angle = 0
 	var/obj/machinery/power/solar_control/control = null
 
-/obj/machinery/power/solar/drain_power()
-	return -1
+/obj/machinery/power/solar/can_drain_energy(datum/actor, flags)
+	return FALSE
 
 /obj/machinery/power/solar/Initialize(mapload, obj/item/solar_assembly/S)
 	. = ..()
@@ -136,7 +136,7 @@ GLOBAL_LIST_EMPTY(solars_list)
 			if(obscured) //get no light from the SSsun.sun, so don't generate power
 				return
 			var/sgen = GLOB.solar_gen_rate * sunfrac
-			add_avail(sgen)
+			add_avail(sgen * 0.001)
 			control.gen += sgen
 		else //if we're no longer on the same powernet, remove from control computer
 			unset_control()
@@ -235,13 +235,13 @@ GLOBAL_LIST_EMPTY(solars_list)
 		if(W.is_wrench())
 			anchored = 1
 			user.visible_message("<span class='notice'>[user] wrenches the solar assembly into place.</span>")
-			playsound(src, W.usesound, 75, 1)
+			playsound(src, W.tool_sound, 75, 1)
 			return 1
 	else
 		if(W.is_wrench())
 			anchored = 0
 			user.visible_message("<span class='notice'>[user] unwrenches the solar assembly from it's place.</span>")
-			playsound(src, W.usesound, 75, 1)
+			playsound(src, W.tool_sound, 75, 1)
 			return 1
 
 		if(istype(W, /obj/item/stack/material) && (W.get_material_name() == "glass" || W.get_material_name() == "rglass"))
@@ -262,9 +262,9 @@ GLOBAL_LIST_EMPTY(solars_list)
 
 	if(!tracker)
 		if(istype(W, /obj/item/tracker_electronics))
+			if(!user.attempt_consume_item_for_construction(W))
+				return
 			tracker = 1
-			user.drop_item()
-			qdel(W)
 			user.visible_message("<span class='notice'>[user] inserts the electronics into the solar assembly.</span>")
 			return 1
 	else
@@ -339,8 +339,8 @@ GLOBAL_LIST_EMPTY(solars_list)
 		SC.auto_start()
 	return TRUE
 
-/obj/machinery/power/solar_control/drain_power()
-	return -1
+/obj/machinery/power/solar_control/can_drain_energy(datum/actor, flags)
+	return FALSE
 
 /obj/machinery/power/solar_control/disconnect_from_network()
 	..()
@@ -435,7 +435,7 @@ GLOBAL_LIST_EMPTY(solars_list)
 
 /obj/machinery/power/solar_control/attackby(obj/item/I, user as mob)
 	if(I.is_screwdriver())
-		playsound(src, I.usesound, 50, 1)
+		playsound(src, I.tool_sound, 50, 1)
 		if(do_after(user, 20))
 			if (src.machine_stat & BROKEN)
 				to_chat(user, "<font color=#4F49AF>The broken glass falls out.</font>")

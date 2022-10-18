@@ -1,6 +1,6 @@
 //TODO: Flash range does nothing currently
 
-proc/explosion(turf/epicenter, devastation_range, heavy_impact_range, light_impact_range, flash_range, adminlog = 1, z_transfer = UP|DOWN, shaped)
+/proc/explosion(turf/epicenter, devastation_range, heavy_impact_range, light_impact_range, flash_range, adminlog = 1, z_transfer = UP|DOWN, shaped)
 	var/multi_z_scalar = config_legacy.multi_z_explosion_scalar
 	spawn(0)
 		var/start = world.timeofday
@@ -98,7 +98,7 @@ proc/explosion(turf/epicenter, devastation_range, heavy_impact_range, light_impa
 				if(!T)
 					T = locate(x0,y0,z0)
 				for(var/atom/movable/AM as anything in T.contents)	//bypass type checking since only atom/movable can be contained by turfs anyway
-					if(AM.flags & AF_ABSTRACT)
+					if(AM.flags & ATOM_ABSTRACT)
 						continue
 					AM.ex_act(dist)
 
@@ -121,6 +121,6 @@ proc/explosion(turf/epicenter, devastation_range, heavy_impact_range, light_impa
 			defer_powernet_rebuild = 0
 	return 1
 
-proc/secondaryexplosion(turf/epicenter, range)
+/proc/secondaryexplosion(turf/epicenter, range)
 	for(var/turf/tile in range(range, epicenter))
 		tile.ex_act(2)

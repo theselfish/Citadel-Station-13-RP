@@ -9,20 +9,14 @@
 	can_build_into_floor = TRUE
 	baseturfs = /turf/simulated/floor/outdoors/rocks
 
-/turf/simulated/floor/outdoors/Initialize(mapload)
-	QUEUE_SMOOTH(src)
-	return ..()
-
 /turf/simulated/floor/outdoors/mud
 	name = "mud"
 	icon_state = "mud_dark"
-	edge_blending_priority = 3
 
 /turf/simulated/floor/outdoors/rocks
 	name = "rocks"
 	desc = "Hard as a rock."
 	icon_state = "rock"
-	edge_blending_priority = 1
 	baseturfs = /turf/baseturf_bottom
 
 /turf/simulated/floor/outdoors/rocks/caves
@@ -40,13 +34,12 @@
 
 /turf/simulated/floor/outdoors/ex_act(severity)
 	switch(severity)
-		//VOREStation Edit - Outdoor turfs less explosion resistant
+		// Outdoor turfs are less explosion resistant
 		if(1)
 			ScrapeAway(flags = CHANGETURF_INHERIT_AIR|CHANGETURF_PRESERVE_OUTDOORS)
 		if(2)
 			if(prob(66))
 				ScrapeAway(flags = CHANGETURF_INHERIT_AIR|CHANGETURF_PRESERVE_OUTDOORS)
-		//VOREStation Edit End
 		if(3)
 			if(prob(15))
 				ScrapeAway(flags = CHANGETURF_INHERIT_AIR|CHANGETURF_PRESERVE_OUTDOORS)

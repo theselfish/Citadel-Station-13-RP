@@ -16,8 +16,9 @@ var/image/mark = image('icons/Testing/Zone.dmi', icon_state = "mark")
 	overlays += img
 	dbg_img = img
 
-proc/soft_assert(thing,fail)
-	if(!thing) message_admins(fail)
+/proc/soft_assert(thing,fail)
+	if(!thing)
+		message_admins(fail)
 
 /client/proc/ZoneTick()
 	set category = "Debug"
@@ -76,7 +77,7 @@ proc/soft_assert(thing,fail)
 		return
 
 	if(direction == "N/A")
-		if(T.CanAtmosPass(T, NONE) == ATMOS_PASS_AIR_BLOCKED)
+		if(T.CanAtmosPass(T, NONE) != ATMOS_PASS_AIR_BLOCKED)
 			to_chat(mob, "The turf can pass air! :D")
 		else
 			to_chat(mob, "No air passage :x")

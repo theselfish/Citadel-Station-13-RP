@@ -46,18 +46,19 @@
 	output += "<p><a href='byond://?src=\ref[src];observe=1'>Observe</A></p>"
 
 	if(!IsGuestKey(src.key))
-		establish_db_connection()
-
-		if(dbcon.IsConnected())
+		if(SSdbcore.Connect())
 			var/isadmin = 0
 			if(src.client && src.client.holder)
 				isadmin = 1
-			var/DBQuery/query = dbcon.NewQuery("SELECT id FROM erro_poll_question WHERE [(isadmin ? "" : "adminonly = false AND")] Now() BETWEEN starttime AND endtime AND id NOT IN (SELECT pollid FROM erro_poll_vote WHERE ckey = \"[ckey]\") AND id NOT IN (SELECT pollid FROM erro_poll_textreply WHERE ckey = \"[ckey]\")")
-			query.Execute()
+			var/datum/db_query/query = SSdbcore.ExecuteQuery(
+				"SELECT id FROM [format_table_name("poll_question")] WHERE [isadmin? "" : "adminonly = false AND"] Now() BETWEEN starttime AND endtime AND id NOT IN (SELECT pollid FROM [format_table_name("poll_vote")] WHERE ckey = :ckey) AND id NOT IN (SELECT pollid FROM [format_table_name("poll_textreply")] WHERE ckey = :ckey)",
+				list("ckey" = ckey)
+			)
 			var/newpoll = 0
 			while(query.NextRow())
 				newpoll = 1
 				break
+			qdel(query)
 
 			if(newpoll)
 				output += "<p><b><a href='byond://?src=\ref[src];showpoll=1'>Show Player Polls</A> (NEW!)</b></p>"
@@ -256,7 +257,7 @@
 
 			observer.started_as_observer = 1
 			close_spawn_windows()
-			var/atom/movable/landmark/L = pick_landmark_by_key(/atom/movable/landmark/observer_spawn)
+			var/obj/landmark/L = pick_landmark_by_key(/obj/landmark/observer_spawn)
 			if(L)
 				to_chat(src, SPAN_NOTICE("Now teleporting."))
 				observer.forceMove(L.loc)
@@ -331,17 +332,20 @@
 		return
 
 	if(href_list["privacy_poll"])
-		establish_db_connection()
-		if(!dbcon.IsConnected())
+		if(!SSdbcore.Connect())
 			return
 		var/voted = 0
 
 		//First check if the person has not voted yet.
-		var/DBQuery/query = dbcon.NewQuery("SELECT * FROM erro_privacy WHERE ckey='[src.ckey]'")
+		var/datum/db_query/query = SSdbcore.NewQuery(
+			"SELECT * FROM [format_table_name("privacy")] WHERE ckey = :ckey",
+			list("ckey" = ckey)
+		)
 		query.Execute()
 		while(query.NextRow())
 			voted = 1
 			break
+		qdel(query)
 
 		//This is a safety switch, so only valid options pass through
 		var/option = "UNKNOWN"
@@ -362,9 +366,13 @@
 			return
 
 		if(!voted)
-			var/sql = "INSERT INTO erro_privacy VALUES (null, Now(), '[src.ckey]', '[option]')"
-			var/DBQuery/query_insert = dbcon.NewQuery(sql)
-			query_insert.Execute()
+			SSdbcore.RunQuery(
+				"INSERT INTO [format_table_name("privacy")] VALUES (null, NOW(), :ckey, :option)",
+				list(
+					"ckey" = ckey,
+					"option" = option
+				)
+			)
 			to_chat(usr, "<b>Thank you for your vote!</b>")
 			usr << browse(null,"window=privacypoll")
 
@@ -504,7 +512,7 @@
 
 	//Find our spawning point.
 	var/list/join_props = job_master.LateSpawn(client, rank)
-	var/atom/movable/landmark/spawnpoint/SP = join_props["spawnpoint"]
+	var/obj/landmark/spawnpoint/SP = pick(join_props["spawnpoint"])
 	var/announce_channel = join_props["channel"] || "Common"
 
 	if(!SP)
@@ -662,8 +670,8 @@
 	new_character.sync_organ_dna()
 	if(client.prefs.disabilities)
 		// Set defer to 1 if you add more crap here so it only recalculates struc_enzymes once. - N3X
-		new_character.dna.SetSEState(GLASSESBLOCK,1,0)
-		new_character.disabilities |= NEARSIGHTED
+		new_character.dna.SetSEState(DNABLOCK_GLASSES,1,0)
+		new_character.disabilities |= DISABILITY_NEARSIGHTED
 	if(client.prefs.mirror == TRUE)
 		if((client.prefs.organ_data[O_BRAIN] != null))
 			var/obj/item/implant/mirror/positronic/F = new /obj/item/implant/mirror/positronic(new_character)
@@ -767,7 +775,7 @@
 	//Do they have their scale properly setup?
 	if(!client.prefs.size_multiplier)
 		pass = FALSE
-		to_chat(src,"<span class='warning'>You have not set your scale yet. Do this on the VORE tab in character setup.</span>")
+		to_chat(src, SPAN_WARNING("You have not set your scale yet.  Do this on the Species Customization tab in character setup."))
 
 	//Can they play?
 	if(!is_alien_whitelisted(src, client.prefs.character_static_species_meta()) && !check_rights(R_ADMIN, 0))
@@ -780,7 +788,7 @@
 		//Didn't name it
 		if(!client.prefs.custom_species)
 			pass = FALSE
-			to_chat(src,"<span class='warning'>You have to name your custom species. Do this on the VORE tab in character setup.</span>")
+			to_chat(src, SPAN_WARNING("You have to name your custom species.  Do this on the Species Customization tab in character setup."))
 
 		//Check traits/costs
 		var/list/megalist = client.prefs.pos_traits + client.prefs.neu_traits + client.prefs.neg_traits
@@ -803,7 +811,7 @@
 		//Went into negatives
 		if(points_left < 0 || traits_left < 0)
 			pass = FALSE
-			to_chat(src,"<span class='warning'>Your custom species is not playable. Reconfigure your traits on the VORE tab.</span>")
+			to_chat(src, SPAN_WARNING("Your custom species is not playable.  Reconfigure your traits on the Species Customization tab."))
 
 	//Final popup notice
 	if (!pass)
